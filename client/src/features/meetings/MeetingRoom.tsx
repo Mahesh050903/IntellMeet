@@ -99,26 +99,8 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     });
 
     socket.on('room-users', ({ participants: existingPeers }) => {
-      // Provide demo peers if solo for rich collaboration testing
-      const peerList = existingPeers.length > 0 ? existingPeers : [
-        {
-          socketId: 'demo_peer_1',
-          userId: 'usr_sarah',
-          name: 'Sarah Connor (Architect)',
-          isAudioMuted: false,
-          isVideoOff: false,
-          isScreenSharing: false,
-        },
-        {
-          socketId: 'demo_peer_2',
-          userId: 'usr_david',
-          name: 'David Kim (Backend Lead)',
-          isAudioMuted: true,
-          isVideoOff: false,
-          isScreenSharing: false,
-        }
-      ];
-      setParticipants(peerList);
+      // Only show real participants who actually join the meeting
+      setParticipants(existingPeers || []);
     });
 
     socket.on('user-joined', ({ participant }) => {
