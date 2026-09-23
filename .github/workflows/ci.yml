@@ -1,0 +1,40 @@
+name: IntellMeet CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci || npm install
+
+      - name: Install & Run Server Tests
+        working-directory: server
+        run: |
+          npm ci || npm install
+          npm run test
+
+      - name: Build Server
+        working-directory: server
+        run: npm run build
+
+      - name: Install & Build Client
+        working-directory: client
+        run: |
+          npm ci || npm install
+          npm run build
