@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { apiFetch, setStoredToken, setStoredUser } from '../../api/client.js';
-import { Video, ShieldCheck, Mail, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
+import { Video, ShieldCheck, Mail, Lock, User, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface AuthModalProps {
   onSuccess: (user: any) => void;
@@ -11,6 +11,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'admin' | 'member'>('member');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -89,9 +90,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         {/* Tab Switcher */}
         <div style={{
           display: 'flex',
-          background: 'rgba(0, 0, 0, 0.25)',
-          padding: '4px',
-          borderRadius: '10px',
+          background: '#16181e',
+          padding: '3px',
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
           marginBottom: '20px',
         }}>
           <button
@@ -99,15 +101,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             onClick={() => { setIsRegister(false); setError(null); }}
             style={{
               flex: 1,
-              padding: '8px',
+              padding: '7px',
               border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.88rem',
+              borderRadius: '6px',
+              fontSize: '0.86rem',
               fontWeight: 600,
               cursor: 'pointer',
-              background: !isRegister ? '#6366f1' : 'transparent',
-              color: !isRegister ? '#ffffff' : '#94a3b8',
-              transition: 'all 0.2s',
+              background: !isRegister ? '#10b981' : 'transparent',
+              color: !isRegister ? '#042f1a' : '#a1a1aa',
+              transition: 'all 0.15s ease',
             }}
           >
             Sign In
@@ -117,15 +119,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             onClick={() => { setIsRegister(true); setError(null); }}
             style={{
               flex: 1,
-              padding: '8px',
+              padding: '7px',
               border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.88rem',
+              borderRadius: '6px',
+              fontSize: '0.86rem',
               fontWeight: 600,
               cursor: 'pointer',
-              background: isRegister ? '#6366f1' : 'transparent',
-              color: isRegister ? '#ffffff' : '#94a3b8',
-              transition: 'all 0.2s',
+              background: isRegister ? '#10b981' : 'transparent',
+              color: isRegister ? '#042f1a' : '#a1a1aa',
+              transition: 'all 0.15s ease',
             }}
           >
             Register
@@ -195,13 +197,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             <div style={{ position: 'relative' }}>
               <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '13px' }} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ width: '100%', paddingLeft: '38px' }}
+                style={{ width: '100%', paddingLeft: '38px', paddingRight: '40px' }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: showPassword ? '#818cf8' : '#64748b',
+                  borderRadius: '6px',
+                  transition: 'color 0.15s ease, background 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#cbd5e1')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = showPassword ? '#818cf8' : '#64748b')}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 
@@ -224,28 +252,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="gradient-btn"
+            className="btn-primary"
             style={{
-              padding: '12px',
-              borderRadius: '10px',
+              padding: '11px',
+              borderRadius: '8px',
               marginTop: '10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              fontSize: '0.95rem',
+              fontSize: '0.92rem',
+              width: '100%',
             }}
           >
             {loading ? 'Processing...' : (
               <>
                 {isRegister ? 'Complete Registration' : 'Sign In'}
-                <ArrowRight size={18} />
+                <ArrowRight size={17} />
               </>
             )}
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontSize: '0.78rem' }}>
+        <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#71717a', fontSize: '0.78rem' }}>
           <ShieldCheck size={14} color="#10b981" />
           <span>Secured with JWT authentication & bcrypt encryption</span>
         </div>

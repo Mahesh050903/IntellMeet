@@ -16,6 +16,7 @@ build/
 
 # Environment files & Secrets
 .env
+**/.env
 .env.local
 .env.*.local
 *.pem
@@ -33,3 +34,12 @@ logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Antigravity Agent & Global Skills
+.agent/
+.agents/
+.antigravity-backup/
+.smoke-test-landing-page/
+skills-lock.json
+AGENTS.md
+GEMINI.md

@@ -86,7 +86,8 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
 
   // Setup Socket.io Connection & Signaling
   useEffect(() => {
-    const socket = io('/', {
+    const socketUrl = import.meta.env.VITE_API_URL || '/';
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
     });
     socketRef.current = socket;
@@ -256,9 +257,10 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '12px 24px',
-        background: 'rgba(15, 23, 42, 0.7)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        padding: '0 24px',
+        height: '52px',
+        background: '#0d0e12',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
         zIndex: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -266,36 +268,39 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
-            color: '#f87171',
-            padding: '3px 8px',
-            borderRadius: '6px',
-            fontSize: '0.72rem',
-            fontWeight: 700,
+            background: 'rgba(244, 63, 94, 0.1)',
+            border: '1px solid rgba(244, 63, 94, 0.25)',
+            color: '#fb7185',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '0.68rem',
+            fontWeight: 600,
             textTransform: 'uppercase',
           }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} className="pulse-badge" />
-            REC
+            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#f43f5e' }} />
+            Live Session
           </div>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f8fafc' }}>{meetingTitle}</h3>
+          <h3 style={{ fontSize: '0.96rem', fontWeight: 600, color: '#f4f4f5' }}>{meetingTitle}</h3>
           <button
             onClick={copyMeetingId}
+            title="Copy Meeting ID"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '4px 10px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '6px',
-              color: '#94a3b8',
-              fontSize: '0.75rem',
+              gap: '5px',
+              padding: '3px 8px',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '5px',
+              color: copiedLink ? '#10b981' : '#a1a1aa',
+              fontSize: '0.72rem',
+              fontFamily: 'monospace',
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            {copiedLink ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
-            {copiedLink ? 'Copied ID' : 'Copy ID'}
+            {copiedLink ? <Check size={11} color="#10b981" /> : <Copy size={11} />}
+            <span>{copiedLink ? 'Copied ID' : 'Copy ID'}</span>
           </button>
         </div>
 
@@ -303,15 +308,17 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(99, 102, 241, 0.15)',
-            padding: '4px 12px',
-            borderRadius: '20px',
-            color: '#a5b4fc',
-            fontSize: '0.78rem',
-            fontWeight: 600,
+            gap: '5px',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            padding: '3px 10px',
+            borderRadius: '12px',
+            color: '#a1a1aa',
+            fontSize: '0.75rem',
+            fontWeight: 500,
           }}>
-            <Users size={14} /> {participants.length + 1} in call
+            <Users size={12} color="#10b981" />
+            <span>{participants.length + 1} connected</span>
           </div>
 
           <button
@@ -320,16 +327,19 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              background: activeSidePanel === 'chat' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-              color: activeSidePanel === 'chat' ? '#a5b4fc' : '#94a3b8',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              border: `1px solid ${activeSidePanel === 'chat' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
+              background: activeSidePanel === 'chat' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+              color: activeSidePanel === 'chat' ? '#34d399' : '#a1a1aa',
               cursor: 'pointer',
-              fontSize: '0.82rem',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              transition: 'all 0.15s ease',
             }}
           >
-            <MessageSquare size={15} /> Chat
+            <MessageSquare size={14} />
+            <span>Chat</span>
           </button>
 
           <button
@@ -338,17 +348,19 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              border: '1px solid rgba(168, 85, 247, 0.4)',
-              background: activeSidePanel === 'ai' ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%)' : 'rgba(168, 85, 247, 0.12)',
-              color: '#c084fc',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              border: `1px solid ${activeSidePanel === 'ai' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
+              background: activeSidePanel === 'ai' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+              color: activeSidePanel === 'ai' ? '#34d399' : '#a1a1aa',
               cursor: 'pointer',
-              fontSize: '0.82rem',
-              fontWeight: 600,
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              transition: 'all 0.15s ease',
             }}
           >
-            <Sparkles size={15} /> AI Intelligence
+            <Sparkles size={14} color="#10b981" />
+            <span>AI Intelligence</span>
           </button>
         </div>
       </div>
@@ -493,22 +505,26 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         {/* Side Panel: In-Meeting Live Chat */}
         {activeSidePanel === 'chat' && (
           <div style={{
-            width: '360px',
-            background: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(20px)',
-            borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+            width: '350px',
+            background: '#101116',
+            borderLeft: '1px solid rgba(255, 255, 255, 0.07)',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 20,
           }}>
-            <div style={{ padding: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>In-Meeting Chat</h4>
-              <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Real-time encrypted message exchange</p>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f4f4f5' }}>In-Meeting Chat</h4>
+                <p style={{ fontSize: '0.72rem', color: '#71717a' }}>Encrypted channel</p>
+              </div>
+              <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                Active
+              </span>
             </div>
 
-            <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {messages.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.85rem', marginTop: '40px' }}>
+                <div style={{ textAlign: 'center', color: '#71717a', fontSize: '0.82rem', marginTop: '40px' }}>
                   No messages yet. Send a greeting to participants!
                 </div>
               ) : (
@@ -520,45 +536,47 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                       style={{
                         alignSelf: isMe ? 'flex-end' : 'flex-start',
                         maxWidth: '85%',
-                        background: isMe ? '#6366f1' : 'rgba(255, 255, 255, 0.08)',
-                        padding: '10px 14px',
-                        borderRadius: '12px',
-                        color: '#ffffff',
+                        background: isMe ? 'rgba(16, 185, 129, 0.15)' : '#181920',
+                        border: isMe ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.07)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        color: isMe ? '#d1fae5' : '#f4f4f5',
                       }}
                     >
-                      <div style={{ fontSize: '0.72rem', opacity: 0.8, marginBottom: '2px', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.7rem', color: isMe ? '#6ee7b7' : '#a1a1aa', marginBottom: '2px', fontWeight: 600 }}>
                         {m.senderName}
                       </div>
-                      <div style={{ fontSize: '0.85rem', wordBreak: 'break-word' }}>{m.text}</div>
+                      <div style={{ fontSize: '0.82rem', wordBreak: 'break-word', lineHeight: 1.4 }}>{m.text}</div>
                     </div>
                   );
                 })
               )}
               {typingUser && (
-                <div style={{ fontSize: '0.75rem', color: '#a5b4fc', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '0.72rem', color: '#34d399', fontStyle: 'italic' }}>
                   {typingUser} is typing...
                 </div>
               )}
             </div>
 
-            <form onSubmit={handleSendMessage} style={{ padding: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', gap: '8px' }}>
+            <form onSubmit={handleSendMessage} style={{ padding: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.07)', display: 'flex', gap: '8px' }}>
               <input
                 type="text"
                 placeholder="Type a message..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                style={{ flex: 1, fontSize: '0.85rem' }}
+                style={{ flex: 1, fontSize: '0.82rem', padding: '8px 12px' }}
               />
               <button
                 type="submit"
-                className="gradient-btn"
-                style={{ padding: '8px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}
+                className="btn-primary"
+                style={{ padding: '8px 12px' }}
               >
-                <Send size={15} />
+                <Send size={14} />
               </button>
             </form>
           </div>
         )}
+
 
         {/* Side Panel: AI Meeting Intelligence */}
         {activeSidePanel === 'ai' && (
@@ -677,23 +695,15 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                     ) : (
                       <button
                         onClick={handleConvertActionItemsToTasks}
+                        className="btn-primary"
                         style={{
                           width: '100%',
-                          padding: '8px',
-                          borderRadius: '6px',
-                          border: '1px solid rgba(99, 102, 241, 0.4)',
-                          background: 'rgba(99, 102, 241, 0.15)',
-                          color: '#a5b4fc',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
+                          padding: '9px 12px',
+                          fontSize: '0.82rem',
                         }}
                       >
-                        Push to Team Kanban Tasks <ArrowRight size={14} />
+                        <span>Push to Team Kanban Tasks</span>
+                        <ArrowRight size={14} />
                       </button>
                     )}
                   </div>
@@ -704,99 +714,110 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         )}
       </div>
 
-      {/* Floating Bottom Control Bar */}
+      {/* Floating Bottom Control Bar - Supabase/Vercel Dock */}
       <div style={{
+        position: 'absolute',
+        bottom: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: '14px',
-        padding: '16px',
-        background: 'rgba(10, 13, 20, 0.85)',
-        backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        gap: '10px',
+        padding: '8px 16px',
+        background: 'rgba(18, 20, 26, 0.94)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
         zIndex: 30,
       }}>
         <button
           onClick={toggleAudio}
           title={isAudioMuted ? 'Unmute Microphone' : 'Mute Microphone'}
           style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '50%',
-            border: 'none',
-            background: isAudioMuted ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
-            color: '#ffffff',
+            width: '42px',
+            height: '42px',
+            borderRadius: '8px',
+            border: isAudioMuted ? '1px solid rgba(244, 63, 94, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+            background: isAudioMuted ? 'rgba(244, 63, 94, 0.15)' : '#1a1c24',
+            color: isAudioMuted ? '#fb7185' : '#f4f4f5',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'all 0.2s',
+            transition: 'all 0.15s ease',
           }}
         >
-          {isAudioMuted ? <MicOff size={20} /> : <Mic size={20} />}
+          {isAudioMuted ? <MicOff size={18} /> : <Mic size={18} color="#10b981" />}
         </button>
 
         <button
           onClick={toggleVideo}
           title={isVideoOff ? 'Start Video' : 'Stop Video'}
           style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '50%',
-            border: 'none',
-            background: isVideoOff ? '#ef4444' : 'rgba(255, 255, 255, 0.1)',
-            color: '#ffffff',
+            width: '42px',
+            height: '42px',
+            borderRadius: '8px',
+            border: isVideoOff ? '1px solid rgba(244, 63, 94, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+            background: isVideoOff ? 'rgba(244, 63, 94, 0.15)' : '#1a1c24',
+            color: isVideoOff ? '#fb7185' : '#f4f4f5',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'all 0.2s',
+            transition: 'all 0.15s ease',
           }}
         >
-          {isVideoOff ? <VideoOff size={20} /> : <VideoIcon size={20} />}
+          {isVideoOff ? <VideoOff size={18} /> : <VideoIcon size={18} color="#10b981" />}
         </button>
 
         <button
           onClick={toggleScreenShare}
           title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen'}
           style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '50%',
-            border: 'none',
-            background: isScreenSharing ? '#06b6d4' : 'rgba(255, 255, 255, 0.1)',
-            color: '#ffffff',
+            width: '42px',
+            height: '42px',
+            borderRadius: '8px',
+            border: isScreenSharing ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+            background: isScreenSharing ? 'rgba(16, 185, 129, 0.15)' : '#1a1c24',
+            color: isScreenSharing ? '#34d399' : '#f4f4f5',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'all 0.2s',
+            transition: 'all 0.15s ease',
           }}
         >
-          <ScreenShare size={20} />
+          <ScreenShare size={18} />
         </button>
+
+        <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)', margin: '0 4px' }} />
 
         <button
           onClick={onLeaveMeeting}
           title="Leave Meeting"
           style={{
-            padding: '10px 24px',
-            borderRadius: '24px',
-            border: 'none',
-            background: '#ef4444',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: '1px solid rgba(244, 63, 94, 0.4)',
+            background: '#e11d48',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '6px',
             cursor: 'pointer',
             fontWeight: 600,
-            fontSize: '0.9rem',
-            boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
+            fontSize: '0.84rem',
+            transition: 'all 0.15s ease',
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#be123c')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#e11d48')}
         >
-          <PhoneOff size={18} /> End Call
+          <PhoneOff size={16} />
+          <span>Leave Room</span>
         </button>
       </div>
     </div>
   );
 };
+
