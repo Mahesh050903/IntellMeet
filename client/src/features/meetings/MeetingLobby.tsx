@@ -79,7 +79,6 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
 
   return (
     <div style={{ maxWidth: '1160px', margin: '0 auto', padding: '32px 24px' }}>
-      {/* Workspace Header Strip */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -124,14 +123,12 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
         </button>
       </div>
 
-      {/* Quick Launch & Join Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
         gap: '18px',
         marginBottom: '36px',
       }}>
-        {/* Instant Meeting Card - Supabase High Contrast */}
         <div style={{
           background: '#12141a',
           border: '1px solid rgba(16, 185, 129, 0.25)',
@@ -189,7 +186,6 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
           </div>
         </div>
 
-        {/* Join by Code Card */}
         <div style={{
           background: '#12141a',
           border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -259,7 +255,6 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
         </div>
       </div>
 
-      {/* Available Meetings List */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
           <div>
@@ -416,7 +411,6 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
         )}
       </div>
 
-      {/* Schedule / Custom Meeting Modal */}
       {showCreateModal && (
         <div style={{
           position: 'fixed',

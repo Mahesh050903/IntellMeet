@@ -44,11 +44,58 @@ export const UserRepository = {
     return user ? { ...user } : null;
   },
 
+  async findByGoogleId(googleId: string) {
+    if (getDBStatus().connected) {
+      return await UserModel.findOne({ googleId }).lean();
+    }
+    const user = Array.from(memoryStore.users.values()).find(
+      (u) => u.googleId === googleId
+    );
+    return user ? { ...user } : null;
+  },
+
+  async updateGoogleId(id: string, googleId: string, avatar?: string) {
+    if (getDBStatus().connected) {
+      const updateData: any = { googleId };
+      if (avatar) updateData.avatar = avatar;
+      return await UserModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    }
+    const user = memoryStore.users.get(id);
+    if (user) {
+      user.googleId = googleId;
+      if (avatar) user.avatar = avatar;
+      memoryStore.users.set(id, user);
+      return { ...user };
+    }
+    return null;
+  },
+
+  async updateProfile(id: string, data: { name?: string; avatar?: string | null; twoFactorEnabled?: boolean }) {
+    if (getDBStatus().connected) {
+      const updateData: any = {};
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.avatar !== undefined) updateData.avatar = data.avatar;
+      if (data.twoFactorEnabled !== undefined) updateData.twoFactorEnabled = data.twoFactorEnabled;
+      return await UserModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    }
+    const user = memoryStore.users.get(id);
+    if (user) {
+      if (data.name !== undefined) user.name = data.name;
+      if (data.avatar !== undefined) user.avatar = data.avatar;
+      if (data.twoFactorEnabled !== undefined) user.twoFactorEnabled = data.twoFactorEnabled;
+      memoryStore.users.set(id, user);
+      return { ...user };
+    }
+    return null;
+  },
+
   async create(userData: {
     name: string;
     email: string;
-    passwordHash: string;
+    passwordHash?: string;
     avatar?: string;
+    googleId?: string;
+    authProvider?: 'local' | 'google';
     role?: 'admin' | 'member' | 'guest';
     teamIds?: string[];
   }) {
@@ -67,6 +114,7 @@ export const UserRepository = {
       email: userData.email.toLowerCase(),
       role: userData.role || 'member',
       teamIds: userData.teamIds || [],
+      authProvider: userData.authProvider || 'local',
       createdAt: new Date().toISOString(),
     };
     memoryStore.users.set(id, newUser);

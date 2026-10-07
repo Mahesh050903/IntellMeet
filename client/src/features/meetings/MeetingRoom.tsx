@@ -252,7 +252,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Top Meeting Info Bar */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -365,9 +364,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         </div>
       </div>
 
-      {/* Main Area: Video Grid + Optional Drawer */}
       <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
-        {/* Video Stage */}
         <div style={{
           flex: 1,
           padding: '16px',
@@ -377,7 +374,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
           alignContent: 'center',
           overflowY: 'auto',
         }}>
-          {/* Local Participant Card */}
           <div style={{
             position: 'relative',
             borderRadius: '16px',
@@ -423,7 +419,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               </div>
             )}
 
-            {/* Video Overlay Name & Badges */}
             <div style={{
               position: 'absolute',
               bottom: '12px',
@@ -444,7 +439,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             </div>
           </div>
 
-          {/* Remote Participants */}
           {participants.map((peer) => (
             <div
               key={peer.socketId}
@@ -461,7 +455,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                 justifyContent: 'center',
               }}
             >
-              {/* Avatar representation for peers */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '70px',
@@ -502,7 +495,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
           ))}
         </div>
 
-        {/* Side Panel: In-Meeting Live Chat */}
         {activeSidePanel === 'chat' && (
           <div style={{
             width: '350px',
@@ -578,7 +570,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         )}
 
 
-        {/* Side Panel: AI Meeting Intelligence */}
         {activeSidePanel === 'ai' && (
           <div style={{
             width: '420px',
@@ -601,7 +592,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               </div>
             </div>
 
-            {/* Transcript Input / Feed */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 600 }}>
                 Live Transcript Feed:
@@ -633,7 +623,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               {aiLoading ? 'Analyzing Transcript with AI...' : 'Generate AI Summary & Actions'}
             </button>
 
-            {/* AI Summary Results */}
             {aiSummary && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="glass-card" style={{ padding: '14px' }}>
@@ -673,7 +662,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                     ))}
                   </div>
 
-                  {/* 1-Click Convert to Kanban Tasks */}
                   <div style={{ marginTop: '14px' }}>
                     {tasksCreated ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.8rem' }}>
@@ -714,7 +702,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         )}
       </div>
 
-      {/* Floating Bottom Control Bar - Supabase/Vercel Dock */}
       <div style={{
         position: 'absolute',
         bottom: '24px',

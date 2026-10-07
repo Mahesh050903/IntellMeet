@@ -33,14 +33,12 @@ export const AnalyticsView: React.FC = () => {
         </p>
       </div>
 
-      {/* Metric Cards Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
         gap: '20px',
         marginBottom: '32px',
       }}>
-        {/* Total Meetings */}
         <div className="glass-card" style={{ padding: '22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>Total Meetings</span>
@@ -54,7 +52,6 @@ export const AnalyticsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Task Completion Rate */}
         <div className="glass-card" style={{ padding: '22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>Task Completion Rate</span>
@@ -68,7 +65,6 @@ export const AnalyticsView: React.FC = () => {
           </div>
         </div>
 
-        {/* AI Intelligence Outputs */}
         <div className="glass-card" style={{ padding: '22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>AI Summaries Processed</span>
@@ -84,7 +80,6 @@ export const AnalyticsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Participants Engaged */}
         <div className="glass-card" style={{ padding: '22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>Total Participant Sessions</span>
@@ -99,9 +94,7 @@ export const AnalyticsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Progress & Architecture Status Panels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
-        {/* Deliverables Breakdown */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '18px' }}>Task Execution Pipeline</h3>
           
@@ -152,7 +145,6 @@ export const AnalyticsView: React.FC = () => {
           </div>
         </div>
 
-        {/* System Architecture Health */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '18px' }}>Enterprise Platform Health</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

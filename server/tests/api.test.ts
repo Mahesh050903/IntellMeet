@@ -75,6 +75,121 @@ describe('IntellMeet Backend API & Security Suite (ECC Compliance)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.user.name).toBe('Alex Johnson');
     });
+
+    it('POST /api/auth/google - should reject payload without credential or userProfile', async () => {
+      const res = await request(app).post('/api/auth/google').send({});
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('POST /api/auth/google - should successfully authenticate with Google profile and return tokens', async () => {
+      const googleEmail = `google_${Date.now()}@intellmeet.com`;
+      const res = await request(app).post('/api/auth/google').send({
+        userProfile: {
+          name: 'Google Test User',
+          email: googleEmail,
+          googleId: `gid_${Date.now()}`,
+          avatar: 'https://example.com/avatar.png',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe(googleEmail);
+      expect(res.body.data.user.avatar).toBe('https://example.com/avatar.png');
+      expect(res.body.data.tokens.accessToken).toBeDefined();
+    });
+
+    it('POST /api/auth/google - should link Google login to existing user account with same email', async () => {
+      const res = await request(app).post('/api/auth/google').send({
+        userProfile: {
+          name: 'Alex Johnson Linked',
+          email: testEmail,
+          googleId: `gid_link_${Date.now()}`,
+          avatar: 'https://example.com/alex-google.png',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe(testEmail.toLowerCase());
+      expect(res.body.data.tokens.accessToken).toBeDefined();
+    });
+
+    describe('Email & Password + OTP Verification Suite', () => {
+      let otpLoginCode = '';
+      let otpRegisterCode = '';
+      const otpRegEmail = `otp_reg_${Date.now()}@intellmeet.com`;
+
+      it('POST /api/auth/login-otp-request - should fail with incorrect password', async () => {
+        const res = await request(app).post('/api/auth/login-otp-request').send({
+          email: testEmail,
+          password: 'WrongPassword!',
+        });
+        expect(res.status).toBe(401);
+        expect(res.body.success).toBe(false);
+      });
+
+      it('POST /api/auth/login-otp-request - should send OTP for valid credentials', async () => {
+        const res = await request(app).post('/api/auth/login-otp-request').send({
+          email: testEmail,
+          password: testPassword,
+        });
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.email).toBe(testEmail);
+        otpLoginCode = res.body.data.devOtp;
+      });
+
+      it('POST /api/auth/verify-otp - should fail with wrong OTP code', async () => {
+        const res = await request(app).post('/api/auth/verify-otp').send({
+          email: testEmail,
+          otp: '000000',
+          purpose: 'login',
+        });
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+      });
+
+      it('POST /api/auth/verify-otp - should successfully log in with valid OTP', async () => {
+        const res = await request(app).post('/api/auth/verify-otp').send({
+          email: testEmail,
+          otp: otpLoginCode,
+          purpose: 'login',
+        });
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.user.email).toBe(testEmail.toLowerCase());
+        expect(res.body.data.tokens.accessToken).toBeDefined();
+      });
+
+      it('POST /api/auth/register-otp-request - should create OTP session with custom photo/avatar', async () => {
+        const res = await request(app).post('/api/auth/register-otp-request').send({
+          name: 'Priya Sharma',
+          email: otpRegEmail,
+          password: 'SecurePassword123!',
+          avatar: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          role: 'member',
+        });
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.email).toBe(otpRegEmail);
+        otpRegisterCode = res.body.data.devOtp;
+      });
+
+      it('POST /api/auth/verify-otp - should successfully register user and preserve uploaded custom avatar', async () => {
+        const res = await request(app).post('/api/auth/verify-otp').send({
+          email: otpRegEmail,
+          otp: otpRegisterCode,
+          purpose: 'register',
+        });
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.user.name).toBe('Priya Sharma');
+        expect(res.body.data.user.avatar).toContain('data:image/png;base64');
+        expect(res.body.data.tokens.accessToken).toBeDefined();
+      });
+    });
   });
 
   describe('Meetings Module (/api/meetings)', () => {

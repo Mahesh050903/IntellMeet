@@ -114,7 +114,6 @@ export const KanbanBoard: React.FC = () => {
         </button>
       </div>
 
-      {/* 3 Columns */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -134,7 +133,6 @@ export const KanbanBoard: React.FC = () => {
                 flexDirection: 'column',
               }}
             >
-              {/* Column Header */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -159,7 +157,6 @@ export const KanbanBoard: React.FC = () => {
                 </span>
               </div>
 
-              {/* Tasks List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                 {colTasks.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '32px 10px', color: '#64748b', fontSize: '0.85rem' }}>
@@ -204,7 +201,6 @@ export const KanbanBoard: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Status Switcher Actions */}
                         <div style={{ display: 'flex', gap: '6px', marginTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '10px' }}>
                           {col.id !== 'todo' && (
                             <button
@@ -268,7 +264,6 @@ export const KanbanBoard: React.FC = () => {
         })}
       </div>
 
-      {/* Add Task Modal */}
       {showAddModal && (
         <div style={{
           position: 'fixed',

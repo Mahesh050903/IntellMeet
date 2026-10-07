@@ -9,6 +9,9 @@ export interface IUser {
   avatar?: string;
   role: UserRole;
   teamIds: string[];
+  googleId?: string;
+  authProvider?: 'local' | 'google';
+  twoFactorEnabled?: boolean;
   createdAt: string;
 }
 

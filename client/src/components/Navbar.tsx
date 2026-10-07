@@ -23,7 +23,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
       top: 0,
       zIndex: 50,
     }}>
-      {/* Brand Logo & Workspace Pill */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer' }} onClick={() => onSelectTab('meetings')}>
         <div style={{
           width: '32px',
@@ -61,7 +60,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
         </div>
       </div>
 
-      {/* Center Navigation Tabs - Vercel Segmented Style */}
       <nav style={{
         display: 'flex',
         alignItems: 'center',
@@ -137,7 +135,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
         </button>
       </nav>
 
-      {/* User Profile & Logout */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{
           display: 'flex',
@@ -159,9 +156,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
             justifyContent: 'center',
             color: '#10b981',
             fontWeight: 600,
-            fontSize: '0.78rem'
+            fontSize: '0.78rem',
+            overflow: 'hidden',
           }}>
-            {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={14} />}
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name || 'User'}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : user?.name ? (
+              user.name.charAt(0).toUpperCase()
+            ) : (
+              <UserIcon size={14} />
+            )}
           </div>
           <div style={{ lineHeight: 1.2 }}>
             <div style={{ fontSize: '0.82rem', fontWeight: 500, color: '#f4f4f5' }}>{user?.name || 'Guest User'}</div>
