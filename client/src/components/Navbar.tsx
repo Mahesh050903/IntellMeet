@@ -70,6 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
       }}>
         <button
           onClick={() => onSelectTab('meetings')}
+          title="Meetings"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -87,11 +88,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
           }}
         >
           <Video size={14} color={currentTab === 'meetings' ? '#10b981' : '#71717a'} />
-          <span>Meetings</span>
+          <span className="nav-tab-text">Meetings</span>
         </button>
 
         <button
           onClick={() => onSelectTab('kanban')}
+          title="Tasks & Actions"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -109,11 +111,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
           }}
         >
           <Kanban size={14} color={currentTab === 'kanban' ? '#10b981' : '#71717a'} />
-          <span>Tasks & Actions</span>
+          <span className="nav-tab-text">Tasks</span>
         </button>
 
         <button
           onClick={() => onSelectTab('analytics')}
+          title="Analytics"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -131,19 +134,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
           }}
         >
           <BarChart3 size={14} color={currentTab === 'analytics' ? '#10b981' : '#71717a'} />
-          <span>Analytics</span>
+          <span className="nav-tab-text">Analytics</span>
         </button>
       </nav>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '9px',
+          gap: '8px',
           padding: '4px 10px 4px 6px',
           background: '#16181e',
           borderRadius: '8px',
           border: '1px solid rgba(255, 255, 255, 0.06)',
+          maxWidth: '140px',
         }}>
           <div style={{
             width: '26px',
@@ -158,6 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
             fontWeight: 600,
             fontSize: '0.78rem',
             overflow: 'hidden',
+            flexShrink: 0,
           }}>
             {user?.avatar ? (
               <img
@@ -171,9 +176,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab, user, o
               <UserIcon size={14} />
             )}
           </div>
-          <div style={{ lineHeight: 1.2 }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 500, color: '#f4f4f5' }}>{user?.name || 'Guest User'}</div>
-            <div style={{ fontSize: '0.68rem', color: '#71717a', textTransform: 'capitalize' }}>{user?.role || 'Member'}</div>
+          <div style={{ lineHeight: 1.2, minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 500, color: '#f4f4f5', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              {user?.name || 'Guest'}
+            </div>
+            <div className="user-role-badge" style={{ fontSize: '0.68rem', color: '#71717a', textTransform: 'capitalize' }}>
+              {user?.role || 'Member'}
+            </div>
           </div>
         </div>
 

@@ -42,7 +42,11 @@ export const createMeeting = async (req: AuthenticatedRequest, res: Response, ne
 
 export const getMeetings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const meetings = await MeetingRepository.findAll();
+    const status = req.query.status as string;
+    let meetings = await MeetingRepository.findAll();
+    if (status) {
+      meetings = meetings.filter((m: any) => m.status === status);
+    }
     res.status(200).json({
       success: true,
       data: { meetings },

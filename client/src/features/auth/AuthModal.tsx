@@ -49,6 +49,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [canResend, setCanResend] = useState(false);
   const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
+  // Forgot Password State
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'request' | 'reset'>('request');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -64,10 +74,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   );
   const [inputClientId, setInputClientId] = useState<string>(activeClientId);
 
-  // OTP Countdown Timer
+  // OTP Countdown Timer (used for both Login/Register OTP and Forgot Password OTP)
   useEffect(() => {
     let interval: any = null;
-    if (isOtpStep && otpTimer > 0) {
+    const isCounting = isOtpStep || (isForgotPassword && forgotStep === 'reset');
+    if (isCounting && otpTimer > 0) {
       interval = setInterval(() => {
         setOtpTimer((prev) => prev - 1);
       }, 1000);
@@ -78,7 +89,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isOtpStep, otpTimer]);
+  }, [isOtpStep, isForgotPassword, forgotStep, otpTimer]);
 
   // Handle Photo/PNG File Selection (Max 500 KB)
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,6 +307,121 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
+  // Request password reset OTP
+  const handleRequestForgotOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    setDevOtpHint(null);
+
+    try {
+      const res = await apiFetch('/auth/forgot-password-request', {
+        method: 'POST',
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+
+      if (!res.success) {
+        setError(res.error || 'Failed to send reset code');
+        setLoading(false);
+        return;
+      }
+
+      setForgotStep('reset');
+      setOtpTimer(60);
+      setCanResend(false);
+      if (res.data?.devOtp) {
+        setDevOtpHint(res.data.devOtp);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit new password with OTP
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotOtp.trim()) {
+      setError('Please enter the 6-digit verification code');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await apiFetch('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: forgotEmail.trim(),
+          otp: forgotOtp.trim(),
+          newPassword,
+        }),
+      });
+
+      if (!res.success) {
+        setError(res.error || 'Failed to reset password');
+        setLoading(false);
+        return;
+      }
+
+      setForgotSuccess('Your password has been successfully reset! You can now log in.');
+      setEmail(forgotEmail.trim());
+      setPassword('');
+      setDevOtpHint(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend forgot password OTP
+  const handleResendForgotOtp = async () => {
+    if (!canResend) return;
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await apiFetch('/auth/resend-otp', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: forgotEmail.trim(),
+          purpose: 'forgot-password',
+        }),
+      });
+
+      if (!res.success) {
+        setError(res.error || 'Failed to resend code');
+        setLoading(false);
+        return;
+      }
+
+      setOtpTimer(60);
+      setCanResend(false);
+      if (res.data?.devOtp) {
+        setDevOtpHint(res.data.devOtp);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveClientId = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = inputClientId.trim();
@@ -317,12 +443,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       zIndex: 100,
       overflowY: 'auto',
     }}>
-      <div className="glass-panel" style={{
+      <div className="glass-panel modal-dialog-responsive" style={{
         maxWidth: '460px',
         width: '100%',
         maxHeight: '94vh',
         overflowY: 'auto',
-        padding: isRegister ? '22px 28px' : '32px 36px',
+        padding: isRegister ? 'clamp(18px, 4vw, 24px) clamp(16px, 4vw, 28px)' : 'clamp(22px, 5vw, 32px) clamp(18px, 5vw, 36px)',
         position: 'relative',
         boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(99, 102, 241, 0.15)',
         margin: 'auto',
@@ -339,17 +465,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             marginBottom: isRegister ? '8px' : '12px',
             boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)',
           }}>
-            <Video size={isRegister ? 24 : 28} color="#ffffff" />
+            {isForgotPassword ? (
+              <Key size={isRegister ? 24 : 28} color="#ffffff" />
+            ) : (
+              <Video size={isRegister ? 24 : 28} color="#ffffff" />
+            )}
           </div>
           <h2 style={{ fontSize: isRegister ? '1.4rem' : '1.55rem', fontWeight: 700, textAlign: 'center', color: '#f8fafc' }}>
-            {isOtpStep
+            {isForgotPassword
+              ? forgotSuccess
+                ? 'Password Reset Complete'
+                : forgotStep === 'reset'
+                ? 'Set New Password'
+                : 'Reset Password'
+              : isOtpStep
               ? 'Email Verification'
               : isRegister
               ? 'Create Your Account'
               : 'Welcome to IntellMeet'}
           </h2>
           <p style={{ color: '#94a3b8', fontSize: isRegister ? '0.8rem' : '0.86rem', textAlign: 'center', marginTop: '3px' }}>
-            {isOtpStep
+            {isForgotPassword
+              ? forgotSuccess
+                ? 'Your password has been updated successfully.'
+                : forgotStep === 'reset'
+                ? `Enter the 6-digit code sent to ${forgotEmail}`
+                : 'Enter your registered email to receive a password reset code'
+              : isOtpStep
               ? `Enter the 6-digit verification code sent to ${email}`
               : isRegister
               ? 'Upload your photo & join collaborative workspaces'
@@ -375,7 +517,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           </div>
         )}
 
-        {isOtpStep && devOtpHint && (
+        {((isOtpStep || (isForgotPassword && forgotStep === 'reset')) && devOtpHint) && (
           <div style={{
             background: 'rgba(16, 185, 129, 0.12)',
             border: '1px solid rgba(16, 185, 129, 0.3)',
@@ -391,7 +533,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             <span>Local/Dev Mode OTP: <b>{devOtpHint}</b></span>
             <button
               type="button"
-              onClick={() => setOtpCode(devOtpHint)}
+              onClick={() => {
+                if (isForgotPassword) {
+                  setForgotOtp(devOtpHint);
+                } else {
+                  setOtpCode(devOtpHint);
+                }
+              }}
               style={{
                 background: 'rgba(16, 185, 129, 0.2)',
                 border: 'none',
@@ -408,7 +556,255 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           </div>
         )}
 
-        {isOtpStep ? (
+        {forgotSuccess ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '16px', padding: '12px 0' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'rgba(16, 185, 129, 0.15)',
+              color: '#34d399',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <CheckCircle size={32} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '6px' }}>
+                Password Updated!
+              </h3>
+              <p style={{ fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                {forgotSuccess}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsForgotPassword(false);
+                setForgotStep('request');
+                setForgotSuccess(null);
+                setError(null);
+                setDevOtpHint(null);
+              }}
+              className="btn-primary"
+              style={{ width: '100%', padding: '11px', borderRadius: '8px', fontWeight: 600, marginTop: '8px' }}
+            >
+              Sign In with New Password
+            </button>
+          </div>
+        ) : isForgotPassword ? (
+          forgotStep === 'request' ? (
+            <form onSubmit={handleRequestForgotOtp} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500 }}>
+                  Registered Email Address
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                  <input
+                    type="email"
+                    required
+                    autoFocus
+                    placeholder="you@company.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    style={{ width: '100%', paddingLeft: '38px' }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary"
+                style={{
+                  padding: '11px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontSize: '0.92rem',
+                  width: '100%',
+                }}
+              >
+                {loading ? 'Sending Code...' : 'Send Verification Code'}
+                <ArrowRight size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setError(null);
+                  setDevOtpHint(null);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '6px',
+                }}
+              >
+                <ArrowLeft size={14} /> Back to Sign In
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500, textAlign: 'center' }}>
+                  6-Digit Verification Code
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  autoFocus
+                  placeholder="000000"
+                  value={forgotOtp}
+                  onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                  style={{
+                    width: '100%',
+                    fontSize: '1.6rem',
+                    letterSpacing: '8px',
+                    textAlign: 'center',
+                    fontFamily: 'monospace',
+                    padding: '8px',
+                    background: '#13151c',
+                    border: '1px solid rgba(99, 102, 241, 0.4)',
+                    borderRadius: '10px',
+                    color: '#818cf8',
+                    fontWeight: 700,
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
+                  <Clock size={14} />
+                  <span>{canResend ? 'Code expired' : `Expires in ${otpTimer}s`}</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={!canResend || loading}
+                  onClick={handleResendForgotOtp}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: canResend ? '#34d399' : '#64748b',
+                    cursor: canResend ? 'pointer' : 'not-allowed',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <RefreshCw size={12} />
+                  Resend Code
+                </button>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500 }}>
+                  New Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    placeholder="At least 6 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{ width: '100%', paddingLeft: '38px', paddingRight: '40px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      padding: '4px',
+                      cursor: 'pointer',
+                      color: showNewPassword ? '#818cf8' : '#64748b',
+                    }}
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500 }}>
+                  Confirm New Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Repeat new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    style={{ width: '100%', paddingLeft: '38px' }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary"
+                style={{
+                  padding: '11px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontSize: '0.92rem',
+                  width: '100%',
+                }}
+              >
+                {loading ? 'Saving...' : 'Save New Password'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotStep('request');
+                  setError(null);
+                  setDevOtpHint(null);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '4px',
+                }}
+              >
+                <ArrowLeft size={14} /> Back
+              </button>
+            </form>
+          )
+        ) : isOtpStep ? (
           <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '8px', fontWeight: 500, textAlign: 'center' }}>
@@ -815,6 +1211,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {!isRegister && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(true);
+                        setForgotStep('request');
+                        setForgotEmail(email);
+                        setError(null);
+                        setDevOtpHint(null);
+                        setForgotSuccess(null);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#818cf8',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        padding: '2px 0',
+                        fontWeight: 500,
+                        transition: 'color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#a5b4fc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = '#818cf8')}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
               </div>
 
               {isRegister && (
@@ -874,10 +1299,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           zIndex: 200,
           padding: '20px',
         }}>
-          <div className="glass-panel" style={{
+          <div className="glass-panel modal-dialog-responsive" style={{
             maxWidth: '480px',
             width: '100%',
-            padding: '28px',
+            padding: 'clamp(18px, 4vw, 28px)',
             position: 'relative',
             borderRadius: '16px',
             border: '1px solid rgba(255, 255, 255, 0.1)',

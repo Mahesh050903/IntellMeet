@@ -25,9 +25,9 @@ export const AnalyticsView: React.FC = () => {
   const tasks = data?.tasks || { total: 0, done: 0, inProgress: 0, todo: 0, completionRate: 0 };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '36px 20px' }}>
+    <div className="container-responsive" style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>Workspace Intelligence & Analytics</h2>
+        <h2 style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.6rem)', fontWeight: 700 }}>Workspace Intelligence & Analytics</h2>
         <p style={{ color: '#94a3b8', fontSize: '0.88rem' }}>
           Real-time metrics on meeting engagement, AI processing, and project execution
         </p>
@@ -35,8 +35,8 @@ export const AnalyticsView: React.FC = () => {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: '20px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+        gap: '16px',
         marginBottom: '32px',
       }}>
         <div className="glass-card" style={{ padding: '22px' }}>
@@ -94,7 +94,7 @@ export const AnalyticsView: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '20px' }}>
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '18px' }}>Task Execution Pipeline</h3>
           

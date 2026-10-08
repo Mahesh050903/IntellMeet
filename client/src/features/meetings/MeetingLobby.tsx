@@ -18,9 +18,11 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
 
   const fetchMeetings = async () => {
     setLoading(true);
-    const res = await apiFetch('/meetings');
+    const res = await apiFetch('/meetings?status=active');
     if (res.success && res.data?.meetings) {
-      setMeetings(res.data.meetings);
+      // Only show meetings that are currently live and active
+      const liveSessions = res.data.meetings.filter((m: any) => m.status === 'active');
+      setMeetings(liveSessions);
     }
     setLoading(false);
   };
@@ -78,8 +80,8 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
   };
 
   return (
-    <div style={{ maxWidth: '1160px', margin: '0 auto', padding: '32px 24px' }}>
-      <div style={{
+    <div className="container-responsive" style={{ maxWidth: '1160px', margin: '0 auto' }}>
+      <div className="responsive-flex-wrap" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -125,7 +127,7 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         gap: '18px',
         marginBottom: '36px',
       }}>
@@ -258,8 +260,8 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f4f4f5' }}>Active & Recent Sessions</h3>
-            <p style={{ color: '#71717a', fontSize: '0.82rem' }}>Currently running or scheduled meeting channels</p>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f4f4f5' }}>Active Live Sessions</h3>
+            <p style={{ color: '#71717a', fontSize: '0.82rem' }}>Currently running live meeting channels</p>
           </div>
           <button
             onClick={fetchMeetings}
@@ -315,7 +317,7 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
             {meetings.map((m) => {
               const meetingId = m._id || m.id;
               const isActive = m.status === 'active';
@@ -423,7 +425,7 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
           padding: '20px',
           zIndex: 100,
         }}>
-          <div style={{
+          <div className="modal-dialog-responsive" style={{
             maxWidth: '420px',
             width: '100%',
             background: '#12141a',

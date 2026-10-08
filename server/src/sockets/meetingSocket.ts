@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { MessageRepository } from '../services/storage/repository.js';
+import { MessageRepository, MeetingRepository } from '../services/storage/repository.js';
 
 interface Participant {
   socketId: string;
@@ -9,6 +9,7 @@ interface Participant {
   isAudioMuted: boolean;
   isVideoOff: boolean;
   isScreenSharing: boolean;
+  isHost?: boolean;
 }
 
 // Map: meetingId -> Map<socketId, Participant>
@@ -20,7 +21,7 @@ export const setupMeetingSockets = (io: Server) => {
     let currentUser: Participant | null = null;
 
     // Join Meeting Room
-    socket.on('join-room', ({ meetingId, userId, name, avatar }) => {
+    socket.on('join-room', ({ meetingId, userId, name, avatar, isHost }) => {
       currentMeetingId = meetingId;
       currentUser = {
         socketId: socket.id,
@@ -30,6 +31,7 @@ export const setupMeetingSockets = (io: Server) => {
         isAudioMuted: false,
         isVideoOff: false,
         isScreenSharing: false,
+        isHost: !!isHost,
       };
 
       socket.join(meetingId);
@@ -45,6 +47,9 @@ export const setupMeetingSockets = (io: Server) => {
       // Add new participant
       room.set(socket.id, currentUser);
 
+      // Ensure meeting status in DB is active
+      MeetingRepository.update(meetingId, { status: 'active' }).catch(() => {});
+
       // Send existing participants to the joined user
       socket.emit('room-users', {
         participants: existingParticipants,
@@ -56,7 +61,7 @@ export const setupMeetingSockets = (io: Server) => {
         participant: currentUser,
       });
 
-      console.log(`[Socket] ${currentUser.name} (${socket.id}) joined meeting ${meetingId}`);
+      console.log(`[Socket] ${currentUser.name} (${socket.id}) joined meeting ${meetingId} (Host: ${!!isHost})`);
     });
 
     // WebRTC Signaling: relay offer, answer, ICE candidates
@@ -124,14 +129,81 @@ export const setupMeetingSockets = (io: Server) => {
       }
     });
 
-    // Disconnect handling
-    socket.on('disconnect', () => {
+    // Update dynamic participant metadata without reconnecting
+    socket.on('update-user-meta', ({ isHost }: { isHost?: boolean }) => {
+      if (currentUser && typeof isHost === 'boolean') {
+        currentUser.isHost = isHost;
+        const room = currentMeetingId ? meetingRooms.get(currentMeetingId) : null;
+        if (room && room.has(socket.id)) {
+          room.set(socket.id, currentUser);
+        }
+      }
+    });
+
+    // Host & Moderator Controls (Google Meet style permissions)
+    socket.on('host-control', ({ targetSocketId, action }) => {
+      if (!currentMeetingId) return;
+      const byName = currentUser?.name || 'Host';
+
+      if (action === 'mute-all') {
+        socket.to(currentMeetingId).emit('force-mute', { byName });
+      } else if (action === 'mute' && targetSocketId) {
+        io.to(targetSocketId).emit('force-mute', { byName });
+      } else if (action === 'stop-video' && targetSocketId) {
+        io.to(targetSocketId).emit('force-stop-video', { byName });
+      } else if (action === 'request-unmute' && targetSocketId) {
+        io.to(targetSocketId).emit('request-unmute', { byName });
+      } else if (action === 'request-video' && targetSocketId) {
+        io.to(targetSocketId).emit('request-video', { byName });
+      } else if (action === 'remove-user' && targetSocketId) {
+        io.to(targetSocketId).emit('removed-from-meeting', { byName });
+        const room = meetingRooms.get(currentMeetingId);
+        if (room) {
+          room.delete(targetSocketId);
+          if (room.size === 0) {
+            meetingRooms.delete(currentMeetingId);
+            MeetingRepository.update(currentMeetingId, { status: 'ended', endTime: new Date() }).catch(() => {});
+          }
+        }
+      }
+    });
+
+    // End Meeting for All (Host/Admin Action)
+    socket.on('end-meeting', async ({ meetingId }) => {
+      const targetId = meetingId || currentMeetingId;
+      if (!targetId) return;
+
+      const room = meetingRooms.get(targetId);
+      if (room) {
+        io.to(targetId).emit('meeting-ended', {
+          meetingId: targetId,
+          endedByName: currentUser?.name || 'Host',
+        });
+        meetingRooms.delete(targetId);
+      }
+
+      await MeetingRepository.update(targetId, {
+        status: 'ended',
+        endTime: new Date(),
+      }).catch((err) => console.error('[Socket] End meeting error:', err));
+
+      console.log(`[Socket] Meeting ${targetId} ended for all participants by ${currentUser?.name}`);
+    });
+
+    // Clean up leaving participant and auto-end room if 0 participants remain
+    const handleLeaveRoom = async () => {
       if (currentMeetingId && currentUser) {
         const room = meetingRooms.get(currentMeetingId);
         if (room) {
           room.delete(socket.id);
           if (room.size === 0) {
             meetingRooms.delete(currentMeetingId);
+            // Auto-end the meeting when 0 participants remain
+            await MeetingRepository.update(currentMeetingId, {
+              status: 'ended',
+              endTime: new Date(),
+            }).catch((err) => console.error('[Socket] Auto-end meeting error:', err));
+            console.log(`[Socket] Meeting ${currentMeetingId} auto-ended (0 participants remaining)`);
           }
         }
         socket.to(currentMeetingId).emit('user-left', {
@@ -141,6 +213,9 @@ export const setupMeetingSockets = (io: Server) => {
         });
         console.log(`[Socket] ${currentUser.name} left meeting ${currentMeetingId}`);
       }
-    });
+    };
+
+    socket.on('leave-room', handleLeaveRoom);
+    socket.on('disconnect', handleLeaveRoom);
   });
 };

@@ -19,6 +19,10 @@ import {
   verifyOtpSchema,
   resendOtpSchema,
   updateProfileSchema,
+  requestForgotPasswordOtp,
+  resetPassword,
+  requestForgotPasswordSchema,
+  resetPasswordSchema,
 } from '../controllers/authController.js';
 import { validateRequest } from '../middleware/validate.js';
 import { authenticate } from '../middleware/authMiddleware.js';
@@ -34,6 +38,10 @@ router.post('/login-otp-request', validateRequest(requestLoginOtpSchema), reques
 router.post('/register-otp-request', validateRequest(requestRegisterOtpSchema), requestRegisterOtp);
 router.post('/verify-otp', validateRequest(verifyOtpSchema), verifyOtp);
 router.post('/resend-otp', validateRequest(resendOtpSchema), resendOtp);
+
+// Password Reset / Forgot Password
+router.post('/forgot-password-request', validateRequest(requestForgotPasswordSchema), requestForgotPasswordOtp);
+router.post('/reset-password', validateRequest(resetPasswordSchema), resetPassword);
 
 // Google OAuth
 router.post('/google', validateRequest(googleAuthSchema), googleAuth);

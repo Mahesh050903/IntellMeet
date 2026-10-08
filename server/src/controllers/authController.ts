@@ -40,12 +40,22 @@ export const requestRegisterOtpSchema = z.object({
 export const verifyOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
   otp: z.string().min(6, 'OTP must be 6 digits').max(6, 'OTP must be 6 digits'),
-  purpose: z.enum(['login', 'register']),
+  purpose: z.enum(['login', 'register', 'forgot-password']),
 });
 
 export const resendOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
-  purpose: z.enum(['login', 'register']),
+  purpose: z.enum(['login', 'register', 'forgot-password']),
+});
+
+export const requestForgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  otp: z.string().min(6, 'OTP must be 6 digits').max(6, 'OTP must be 6 digits'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 export const updateProfileSchema = z.object({
@@ -573,6 +583,69 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response, ne
           twoFactorEnabled: updatedUser.twoFactorEnabled !== false,
         },
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const requestForgotPasswordOtp = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    const user = await UserRepository.findByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'No account registered with this email address.',
+      });
+    }
+
+    const otp = OtpService.createOtp(email, 'forgot-password');
+    const emailResult = await EmailService.sendOtpEmail(email, otp, 'forgot-password');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset verification code has been sent to your email.',
+      data: {
+        email,
+        purpose: 'forgot-password',
+        delivered: emailResult.delivered,
+        devOtp: emailResult.devOtp,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const result = OtpService.verifyOtp(email, otp, 'forgot-password');
+    if (!result.valid) {
+      return res.status(400).json({
+        success: false,
+        error: result.error || 'Invalid or expired verification code.',
+      });
+    }
+
+    const user = await UserRepository.findByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found.',
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await UserRepository.updatePassword(user._id?.toString() || user.id, passwordHash);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been successfully reset! You can now log in with your new password.',
     });
   } catch (error) {
     next(error);

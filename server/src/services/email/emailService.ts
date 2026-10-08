@@ -24,14 +24,14 @@ export class EmailService {
     return null;
   }
 
-  public static async sendOtpEmail(toEmail: string, otpCode: string, purpose: 'login' | 'register' = 'login'): Promise<{ delivered: boolean; devOtp?: string }> {
+  public static async sendOtpEmail(toEmail: string, otpCode: string, purpose: 'login' | 'register' | 'forgot-password' = 'login'): Promise<{ delivered: boolean; devOtp?: string }> {
     if (process.env.NODE_ENV === 'test') {
       return { delivered: true, devOtp: otpCode };
     }
 
     const transporter = this.getTransporter();
     const fromAddress = process.env.SMTP_FROM || '"IntellMeet Security" <no-reply@intellmeet.com>';
-    const actionLabel = purpose === 'register' ? 'Account Registration' : 'Account Login';
+    const actionLabel = purpose === 'register' ? 'Account Registration' : purpose === 'forgot-password' ? 'Password Reset' : 'Account Login';
 
     const htmlContent = `
       <!DOCTYPE html>

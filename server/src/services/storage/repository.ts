@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { UserModel } from '../../models/userModel.js';
 import { MeetingModel } from '../../models/meetingModel.js';
 import { MessageModel } from '../../models/messageModel.js';
@@ -89,6 +90,19 @@ export const UserRepository = {
     return null;
   },
 
+  async updatePassword(id: string, passwordHash: string) {
+    if (getDBStatus().connected) {
+      return await UserModel.findByIdAndUpdate(id, { passwordHash }, { new: true }).lean();
+    }
+    const user = memoryStore.users.get(id);
+    if (user) {
+      user.passwordHash = passwordHash;
+      memoryStore.users.set(id, user);
+      return { ...user };
+    }
+    return null;
+  },
+
   async create(userData: {
     name: string;
     email: string;
@@ -155,7 +169,14 @@ export const MeetingRepository = {
 
   async findById(id: string) {
     if (getDBStatus().connected) {
-      return await MeetingModel.findById(id).lean();
+      try {
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          return await MeetingModel.findById(id).lean();
+        }
+        return await MeetingModel.findOne({ id }).lean();
+      } catch {
+        return null;
+      }
     }
     const meeting = memoryStore.meetings.get(id);
     return meeting ? { ...meeting } : null;
@@ -170,7 +191,14 @@ export const MeetingRepository = {
 
   async update(id: string, updates: Partial<any>) {
     if (getDBStatus().connected) {
-      return await MeetingModel.findByIdAndUpdate(id, updates, { new: true }).lean();
+      try {
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          return await MeetingModel.findByIdAndUpdate(id, updates, { new: true }).lean();
+        }
+        return await MeetingModel.findOneAndUpdate({ id }, updates, { new: true }).lean();
+      } catch {
+        return null;
+      }
     }
     const current = memoryStore.meetings.get(id);
     if (!current) return null;

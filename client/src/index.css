@@ -256,3 +256,92 @@ input::placeholder, textarea::placeholder {
   background: rgba(255, 255, 255, 0.22);
 }
 
+/* Mobile Responsive & Cross-Platform System */
+.container-responsive {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px clamp(14px, 3.5vw, 32px);
+}
+
+@media (max-width: 1024px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  header {
+    padding: 0 12px !important;
+    height: 56px !important;
+  }
+  
+  header nav {
+    gap: 2px !important;
+    padding: 2px !important;
+  }
+  
+  header nav button {
+    padding: 6px 10px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .nav-tab-text {
+    display: none;
+  }
+
+  .user-role-badge {
+    display: none !important;
+  }
+
+  .meeting-side-panel {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 25 !important;
+    background: #0d0e13 !important;
+  }
+
+  .responsive-flex-wrap {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .responsive-grid-2,
+  .responsive-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .meeting-controls-dock {
+    bottom: 12px !important;
+    padding: 6px 10px !important;
+    gap: 6px !important;
+    max-width: 96vw !important;
+    border-radius: 12px !important;
+  }
+
+  .meeting-controls-dock button {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 6px !important;
+  }
+
+  .meeting-controls-dock button span {
+    display: none !important;
+  }
+
+  .kanban-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal-dialog-responsive {
+    width: 95vw !important;
+    padding: 18px 16px !important;
+  }
+}
+
+
+

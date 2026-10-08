@@ -10,6 +10,8 @@ export const KanbanBoard: React.FC = () => {
   const [description, setDescription] = useState('');
   const [assigneeName, setAssigneeName] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<'todo' | 'in-progress' | 'done' | null>(null);
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -90,8 +92,8 @@ export const KanbanBoard: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '36px 20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+    <div className="container-responsive" style={{ maxWidth: '1300px', margin: '0 auto' }}>
+      <div className="responsive-flex-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>Collaboration Kanban Board</h2>
           <p style={{ color: '#94a3b8', fontSize: '0.88rem' }}>
@@ -114,9 +116,9 @@ export const KanbanBoard: React.FC = () => {
         </button>
       </div>
 
-      <div style={{
+      <div className="kanban-grid" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
         gap: '20px',
         alignItems: 'start',
       }}>
@@ -126,11 +128,34 @@ export const KanbanBoard: React.FC = () => {
             <div
               key={col.id}
               className="glass-panel"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDragEnter={() => setDragOverCol(col.id)}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverCol(null);
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const taskId = e.dataTransfer.getData('text/plain') || draggingTaskId;
+                if (taskId) {
+                  handleUpdateStatus(taskId, col.id);
+                }
+                setDragOverCol(null);
+                setDraggingTaskId(null);
+              }}
               style={{
                 padding: '20px',
                 minHeight: '480px',
                 display: 'flex',
                 flexDirection: 'column',
+                transition: 'all 0.2s ease',
+                border: dragOverCol === col.id ? `1px dashed ${col.color}` : '1px solid rgba(255, 255, 255, 0.08)',
+                background: dragOverCol === col.id ? 'rgba(255, 255, 255, 0.03)' : undefined,
+                boxShadow: dragOverCol === col.id ? `0 0 20px ${col.color}25` : undefined,
               }}
             >
               <div style={{
@@ -159,8 +184,15 @@ export const KanbanBoard: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                 {colTasks.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '32px 10px', color: '#64748b', fontSize: '0.85rem' }}>
-                    No tasks in {col.title.toLowerCase()}
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '36px 12px',
+                    color: '#64748b',
+                    fontSize: '0.85rem',
+                    border: '1px dashed rgba(255, 255, 255, 0.06)',
+                    borderRadius: '8px',
+                  }}>
+                    Drag tasks here or create new in {col.title.toLowerCase()}
                   </div>
                 ) : (
                   colTasks.map((t) => {
@@ -169,11 +201,24 @@ export const KanbanBoard: React.FC = () => {
                       <div
                         key={taskId}
                         className="glass-card"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', taskId);
+                          setDraggingTaskId(taskId);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingTaskId(null);
+                          setDragOverCol(null);
+                        }}
                         style={{
                           padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '10px',
+                          cursor: 'grab',
+                          opacity: draggingTaskId === taskId ? 0.45 : 1,
+                          transform: draggingTaskId === taskId ? 'scale(0.98)' : undefined,
+                          transition: 'all 0.15s ease',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -276,7 +321,7 @@ export const KanbanBoard: React.FC = () => {
           padding: '20px',
           zIndex: 100,
         }}>
-          <div className="glass-panel" style={{ maxWidth: '440px', width: '100%', padding: '28px' }}>
+          <div className="glass-panel modal-dialog-responsive" style={{ maxWidth: '440px', width: '100%', padding: '28px' }}>
             <h3 style={{ fontSize: '1.3rem', marginBottom: '16px' }}>Create New Kanban Task</h3>
             <form onSubmit={handleCreateTask} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>

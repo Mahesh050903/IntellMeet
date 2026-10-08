@@ -2,7 +2,7 @@ export interface PendingOtp {
   email: string;
   code: string;
   expiresAt: number;
-  purpose: 'login' | 'register';
+  purpose: 'login' | 'register' | 'forgot-password';
   registrationData?: {
     name: string;
     email: string;
@@ -15,13 +15,13 @@ export interface PendingOtp {
 class OtpManager {
   private store: Map<string, PendingOtp> = new Map();
 
-  private getKey(email: string, purpose: 'login' | 'register'): string {
+  private getKey(email: string, purpose: 'login' | 'register' | 'forgot-password'): string {
     return `${email.toLowerCase().trim()}_${purpose}`;
   }
 
   public createOtp(
     email: string,
-    purpose: 'login' | 'register',
+    purpose: 'login' | 'register' | 'forgot-password',
     registrationData?: PendingOtp['registrationData']
   ): string {
     const key = this.getKey(email, purpose);
@@ -43,7 +43,7 @@ class OtpManager {
   public verifyOtp(
     email: string,
     code: string,
-    purpose: 'login' | 'register'
+    purpose: 'login' | 'register' | 'forgot-password'
   ): { valid: boolean; error?: string; registrationData?: PendingOtp['registrationData'] } {
     const key = this.getKey(email, purpose);
     const entry = this.store.get(key);
@@ -67,7 +67,7 @@ class OtpManager {
     return { valid: true, registrationData: data };
   }
 
-  public getPending(email: string, purpose: 'login' | 'register'): PendingOtp | null {
+  public getPending(email: string, purpose: 'login' | 'register' | 'forgot-password'): PendingOtp | null {
     const key = this.getKey(email, purpose);
     const entry = this.store.get(key);
     if (!entry) return null;
