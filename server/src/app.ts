@@ -17,7 +17,6 @@ dotenv.config();
 export const createApp = (): Express => {
   const app = express();
 
-  // Security & Utility Middleware (ECC Security Checklist)
   app.use(helmet());
   app.use(
     cors({
@@ -32,7 +31,6 @@ export const createApp = (): Express => {
     app.use(morgan('dev'));
   }
 
-  // API Routes
   app.use('/api/health', healthRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/meetings', meetingRoutes);
@@ -40,7 +38,6 @@ export const createApp = (): Express => {
   app.use('/api/teams', teamRoutes);
   app.use('/api/analytics', analyticsRoutes);
 
-  // 404 Route
   app.use('*', (req, res) => {
     res.status(404).json({
       success: false,
@@ -48,7 +45,6 @@ export const createApp = (): Express => {
     });
   });
 
-  // Centralized Error Handling
   app.use(errorHandler);
 
   return app;

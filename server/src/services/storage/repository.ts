@@ -7,7 +7,6 @@ import { TeamModel } from '../../models/teamModel.js';
 import { SummaryModel } from '../../models/summaryModel.js';
 import { getDBStatus } from '../../config/db.js';
 
-// In-Memory fallback store with immutable operations
 interface MemoryStore {
   users: Map<string, any>;
   meetings: Map<string, any>;

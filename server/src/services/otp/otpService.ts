@@ -25,9 +25,8 @@ class OtpManager {
     registrationData?: PendingOtp['registrationData']
   ): string {
     const key = this.getKey(email, purpose);
-    // Secure 6-digit OTP
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+    const expiresAt = Date.now() + 5 * 60 * 1000;
 
     this.store.set(key, {
       email: email.toLowerCase().trim(),
@@ -61,7 +60,6 @@ class OtpManager {
       return { valid: false, error: 'Incorrect verification code. Please check and try again.' };
     }
 
-    // Code is valid! Consume it
     const data = entry.registrationData;
     this.store.delete(key);
     return { valid: true, registrationData: data };

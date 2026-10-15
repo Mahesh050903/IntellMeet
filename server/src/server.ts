@@ -8,13 +8,11 @@ const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 const startServer = async () => {
-  // Connect to DB
   await connectDB();
 
   const app = createApp();
   const httpServer = http.createServer(app);
 
-  // Setup Socket.io
   const io = new Server(httpServer, {
     cors: {
       origin: CLIENT_URL,

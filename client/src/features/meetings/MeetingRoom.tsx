@@ -85,7 +85,6 @@ const RemoteParticipantVideo: React.FC<{
         </div>
       )}
 
-      {/* Host Quick Moderation Controls on Participant Card */}
       {isHost && (
         <div
           style={{
@@ -230,7 +229,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   onLeaveMeeting,
   onOpenKanban,
 }) => {
-  // Media States
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -244,7 +242,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     micCount: number;
   }>({ hasCamera: true, hasMic: true, cameraCount: 0, micCount: 0 });
 
-  // Host & Meeting Information
   const [isHost, setIsHost] = useState(false);
   const [permissionPrompt, setPermissionPrompt] = useState<{
     type: 'audio' | 'video';
@@ -252,19 +249,15 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Panels & Views
   const [activeSidePanel, setActiveSidePanel] = useState<'chat' | 'ai' | 'participants' | null>('chat');
 
-  // Chat & Socket
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [participants, setParticipants] = useState<any[]>([]);
   const [typingUser, setTypingUser] = useState<string | null>(null);
 
-  // WebRTC Mesh State
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
 
-  // AI & Transcript State
   const [transcript, setTranscript] = useState<string>(
     `Alex: Good morning team, let's review our quarterly roadmap and architecture.\n` +
     `Sarah: I propose we complete the WebRTC mesh audio/video signaling by Wednesday.\n` +
@@ -276,14 +269,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   const [aiLoading, setAiLoading] = useState(false);
   const [tasksCreated, setTasksCreated] = useState(false);
 
-  // Video Refs & Peer Connections Map
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const candidateQueueRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
 
-  // ICE Server Configuration (STUN with optional production TURN)
   const getIceServers = (): RTCIceServer[] => {
     const servers: RTCIceServer[] = [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -305,7 +296,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     return servers;
   };
 
-  // Close and cleanup a single peer connection
   const cleanupPeer = (socketId: string) => {
     const pc = peerConnectionsRef.current.get(socketId);
     if (pc) {
@@ -323,7 +313,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     });
   };
 
-  // Create an RTCPeerConnection for a remote peer
   const createPeerConnection = (remoteSocketId: string, isInitiator: boolean): RTCPeerConnection => {
     if (peerConnectionsRef.current.has(remoteSocketId)) {
       return peerConnectionsRef.current.get(remoteSocketId)!;
@@ -334,14 +323,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       iceCandidatePoolSize: 10,
     });
 
-    // Add local tracks if available
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current!);
       });
     }
 
-    // ICE Candidate handler
     pc.onicecandidate = (event) => {
       if (event.candidate && socketRef.current) {
         socketRef.current.emit('signal-peer', {
@@ -354,7 +341,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       }
     };
 
-    // Incoming remote media tracks
     pc.ontrack = (event) => {
       const incomingStream = event.streams[0] || new MediaStream([event.track]);
       setRemoteStreams((prev) => ({
@@ -363,7 +349,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       }));
     };
 
-    // Connection state changes
     pc.onconnectionstatechange = () => {
       if (
         pc.connectionState === 'disconnected' ||
@@ -376,7 +361,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
 
     peerConnectionsRef.current.set(remoteSocketId, pc);
 
-    // If initiator, create and send SDP offer
     if (isInitiator) {
       pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
         .then((offer) => pc.setLocalDescription(offer))
@@ -395,7 +379,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     return pc;
   };
 
-  // Detect plugged-in hardware devices (webcams, microphones, headsets)
   const checkPluggedDevices = async () => {
     try {
       if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -423,7 +406,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     }
   }, []);
 
-  // Ensure local video element stays actively attached and playing whenever video is ON
   useEffect(() => {
     if (localVideoRef.current && localStream && !isVideoOff) {
       if (localVideoRef.current.srcObject !== localStream) {
@@ -435,7 +417,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     }
   }, [localStream, isVideoOff]);
 
-  // Replace video track across all active peer connections (e.g. for screen sharing or camera toggle)
   const replaceVideoTrack = (newTrack: MediaStreamTrack | null) => {
     peerConnectionsRef.current.forEach((pc) => {
       const senders = pc.getSenders();
@@ -452,7 +433,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     });
   };
 
-  // Replace audio track across all active peer connections
   const replaceAudioTrack = (newTrack: MediaStreamTrack | null) => {
     peerConnectionsRef.current.forEach((pc) => {
       const senders = pc.getSenders();
@@ -469,14 +449,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     });
   };
 
-  // Setup Local Media Stream with plugged-in device support and graceful device fallback
   const initMedia = async () => {
     setMediaError(null);
     await checkPluggedDevices();
     let stream: MediaStream | null = null;
 
     try {
-      // 1. Try acquiring both camera and microphone with 720p ideal
       stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true,
@@ -484,7 +462,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     } catch (combinedErr: any) {
       console.warn('[Media] Combined request failed, trying separate video and audio streams...', combinedErr);
 
-      // 2. Try acquiring video (with 720p or fallback to basic video: true for any plugged-in webcam)
       let videoStream: MediaStream | null = null;
       try {
         videoStream = await navigator.mediaDevices.getUserMedia({
@@ -498,7 +475,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         }
       }
 
-      // 3. Try acquiring audio
       let audioStream: MediaStream | null = null;
       try {
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -514,7 +490,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       } else if (audioStream) {
         stream = audioStream;
       } else {
-        // Both camera and mic failed or blocked
         console.warn('[Media] All media device attempts failed:', combinedErr);
         if (combinedErr.name === 'NotAllowedError' || combinedErr.name === 'PermissionDeniedError') {
           setMediaError('Camera & microphone permissions are blocked. Click the 🔒 lock icon in your URL bar, allow Camera & Microphone, and click Retry.');
@@ -544,7 +519,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     setIsAudioMuted(!hasAudio);
     setMediaError(null);
 
-    // Attach tracks to any already-opened peer connections
     peerConnectionsRef.current.forEach((pc) => {
       stream!.getTracks().forEach((track) => {
         const alreadySending = pc.getSenders().some((s) => s.track?.kind === track.kind);
@@ -572,7 +546,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     };
   }, []);
 
-  // Check host status from backend meeting record
   useEffect(() => {
     apiFetch(`/meetings/${meetingId}`).then((res) => {
       if (res.success && res.data?.meeting) {
@@ -589,7 +562,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     });
   }, [meetingId, currentUser?.id]);
 
-  // Auto-dismiss floating toast notifications
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => setToastMessage(null), 4000);
@@ -597,7 +569,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     }
   }, [toastMessage]);
 
-  // Host Moderation Actions
   const handleHostControl = (targetSocketId: string, action: string) => {
     socketRef.current?.emit('host-control', { targetSocketId, action });
   };
@@ -614,7 +585,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     setToastMessage('Requested all participants to be muted.');
   };
 
-  // Setup Socket.io Connection & WebRTC Signaling Relay
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_API_URL || '/';
     const socket = io(socketUrl, {
@@ -632,7 +602,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
 
     socket.on('room-users', ({ participants: existingPeers }) => {
       setParticipants(existingPeers || []);
-      // Newcomer initiates WebRTC P2P connection to all existing participants
       existingPeers?.forEach((peer: any) => {
         if (peer.socketId !== socket.id) {
           createPeerConnection(peer.socketId, true);
@@ -649,7 +618,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       setParticipants((prev) => prev.filter((p) => p.socketId !== socketId));
     });
 
-    // WebRTC Signaling: Handle Offer, Answer, and ICE Candidates
     socket.on('signal-peer', async ({ fromSocketId, signal }) => {
       try {
         let pc = peerConnectionsRef.current.get(fromSocketId);
@@ -660,14 +628,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
           }
           await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
 
-          // Attach local tracks if not already added
           if (localStreamRef.current && pc.getSenders().length === 0) {
             localStreamRef.current.getTracks().forEach((track) => {
               pc?.addTrack(track, localStreamRef.current!);
             });
           }
 
-          // Process any queued candidates for this peer
           const queue = candidateQueueRef.current.get(fromSocketId) || [];
           for (const cand of queue) {
             try {
@@ -692,7 +658,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
           if (pc) {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
 
-            // Process any queued candidates
             const queue = candidateQueueRef.current.get(fromSocketId) || [];
             for (const cand of queue) {
               try {
@@ -711,7 +676,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               console.warn('[WebRTC] Error adding ICE candidate:', candErr);
             }
           } else {
-            // Queue candidate until remote description is set
             const queue = candidateQueueRef.current.get(fromSocketId) || [];
             queue.push(signal.candidate);
             candidateQueueRef.current.set(fromSocketId, queue);
@@ -722,7 +686,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       }
     });
 
-    // Real-Time Participant Media State Changes
     socket.on('participant-audio-change', ({ socketId, isAudioMuted }) => {
       setParticipants((prev) =>
         prev.map((p) => (p.socketId === socketId ? { ...p, isAudioMuted } : p))
@@ -741,7 +704,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       );
     });
 
-    // Host & Admin Remote Controls Listeners (Google Meet style)
     socket.on('meeting-ended', ({ endedByName }) => {
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -807,7 +769,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       }
     });
 
-    // Load past chat messages from DB
     apiFetch(`/meetings/${meetingId}/messages`).then((res) => {
       if (res.success && res.data?.messages) {
         setMessages(res.data.messages);
@@ -825,7 +786,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     };
   }, [meetingId, currentUser?.id]);
 
-  // Toggle Media Controls with on-demand device acquisition and track replacement
   const toggleAudio = async () => {
     if (isAudioMuted) {
       const existingTrack = localStreamRef.current?.getAudioTracks().find((t) => t.readyState === 'live');
@@ -838,7 +798,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         return;
       }
 
-      // Remove any dead/ended audio tracks
       if (localStreamRef.current) {
         localStreamRef.current.getAudioTracks().forEach((t) => {
           localStreamRef.current!.removeTrack(t);
@@ -902,7 +861,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         return;
       }
 
-      // Remove any dead/ended video tracks
       if (localStreamRef.current) {
         localStreamRef.current.getVideoTracks().forEach((t) => {
           localStreamRef.current!.removeTrack(t);
@@ -997,7 +955,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     }
   };
 
-  // Chat message sending
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !socketRef.current) return;
@@ -1009,7 +966,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     setNewMessage('');
   };
 
-  // AI Meeting Intelligence Trigger
   const handleGenerateSummary = async () => {
     setAiLoading(true);
     const res = await apiFetch(`/meetings/${meetingId}/ai-summary`, {
@@ -1023,7 +979,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     setAiLoading(false);
   };
 
-  // 1-Click Convert Action Items to Kanban Tasks
   const handleConvertActionItemsToTasks = async () => {
     if (!aiSummary?.actionItems) return;
 
@@ -1193,7 +1148,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         </div>
       </div>
 
-      {/* Floating Permission Prompt (Google Meet style) */}
       {permissionPrompt && (
         <div style={{
           position: 'fixed',
@@ -1239,7 +1193,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         </div>
       )}
 
-      {/* Floating Notification Toast */}
       {toastMessage && (
         <div style={{
           position: 'fixed',
@@ -1672,7 +1625,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             </div>
 
             <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {/* Current user row */}
               <div style={{
                 background: 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -1710,7 +1662,6 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                 </div>
               </div>
 
-              {/* Remote participants list */}
               {participants.map((p) => (
                 <div
                   key={p.socketId}

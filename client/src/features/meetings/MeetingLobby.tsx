@@ -20,7 +20,6 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
     setLoading(true);
     const res = await apiFetch('/meetings?status=active');
     if (res.success && res.data?.meetings) {
-      // Only show meetings that are currently live and active
       const liveSessions = res.data.meetings.filter((m: any) => m.status === 'active');
       setMeetings(liveSessions);
     }

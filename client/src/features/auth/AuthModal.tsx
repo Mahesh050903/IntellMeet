@@ -42,14 +42,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [role, setRole] = useState<'admin' | 'member'>('member');
   const [avatar, setAvatar] = useState<string>('');
   
-  // OTP Verification State
   const [isOtpStep, setIsOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpTimer, setOtpTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
-  // Forgot Password State
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotStep, setForgotStep] = useState<'request' | 'reset'>('request');
   const [forgotEmail, setForgotEmail] = useState('');
@@ -67,14 +65,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
-  // Real Google Client ID from environment or user-configured localStorage
   const envClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
   const [activeClientId, setActiveClientId] = useState<string>(
     envClientId || localStorage.getItem('intellmeet_google_client_id') || ''
   );
   const [inputClientId, setInputClientId] = useState<string>(activeClientId);
 
-  // OTP Countdown Timer (used for both Login/Register OTP and Forgot Password OTP)
   useEffect(() => {
     let interval: any = null;
     const isCounting = isOtpStep || (isForgotPassword && forgotStep === 'reset');
@@ -91,7 +87,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     };
   }, [isOtpStep, isForgotPassword, forgotStep, otpTimer]);
 
-  // Handle Photo/PNG File Selection (Max 500 KB)
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -102,7 +97,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       return;
     }
 
-    const MAX_SIZE_BYTES = 500 * 1024; // 500 KB limit
+    const MAX_SIZE_BYTES = 500 * 1024;
     if (file.size > MAX_SIZE_BYTES) {
       const sizeDisplay = file.size >= 1024 * 1024
         ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
@@ -121,7 +116,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     reader.readAsDataURL(file);
   };
 
-  // Initialize official Google Identity Services
   useEffect(() => {
     if (!activeClientId) return;
 
@@ -197,7 +191,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Submit credentials and send OTP to user's email
   const handleInitiateAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -220,7 +213,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Switch to OTP Verification Step
       setIsOtpStep(true);
       setOtpCode('');
       setOtpTimer(60);
@@ -237,7 +229,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Verify submitted 6-digit OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otpCode.length !== 6) {
@@ -274,7 +265,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Resend OTP to email
   const handleResendOtp = async () => {
     if (!canResend) return;
     setError(null);
@@ -307,7 +297,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Request password reset OTP
   const handleRequestForgotOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
@@ -343,7 +332,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Submit new password with OTP
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotOtp.trim()) {
@@ -389,7 +377,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Resend forgot password OTP
   const handleResendForgotOtp = async () => {
     if (!canResend) return;
     setError(null);

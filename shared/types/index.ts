@@ -1,4 +1,3 @@
-// IntellMeet Shared Types & Interfaces
 
 export type UserRole = 'admin' | 'member' | 'guest';
 
@@ -116,7 +115,6 @@ export interface INotification {
   createdAt: string;
 }
 
-// WebRTC & Socket.io Signaling Interfaces
 export interface IRoomPeer {
   socketId: string;
   userId: string;
@@ -133,7 +131,6 @@ export interface ISignalPayload {
   signal: any;
 }
 
-// Standard API Response Envelope (ECC Architectural Pattern)
 export interface IApiResponse<T = any> {
   success: boolean;
   message?: string;

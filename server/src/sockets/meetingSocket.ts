@@ -12,7 +12,6 @@ interface Participant {
   isHost?: boolean;
 }
 
-// Map: meetingId -> Map<socketId, Participant>
 const meetingRooms = new Map<string, Map<string, Participant>>();
 
 export const setupMeetingSockets = (io: Server) => {
@@ -20,7 +19,6 @@ export const setupMeetingSockets = (io: Server) => {
     let currentMeetingId: string | null = null;
     let currentUser: Participant | null = null;
 
-    // Join Meeting Room
     socket.on('join-room', ({ meetingId, userId, name, avatar, isHost }) => {
       currentMeetingId = meetingId;
       currentUser = {
@@ -41,22 +39,17 @@ export const setupMeetingSockets = (io: Server) => {
       }
       const room = meetingRooms.get(meetingId)!;
 
-      // Existing participants in this meeting room
       const existingParticipants = Array.from(room.values());
 
-      // Add new participant
       room.set(socket.id, currentUser);
 
-      // Ensure meeting status in DB is active
       MeetingRepository.update(meetingId, { status: 'active' }).catch(() => {});
 
-      // Send existing participants to the joined user
       socket.emit('room-users', {
         participants: existingParticipants,
         myInfo: currentUser,
       });
 
-      // Notify others in room
       socket.to(meetingId).emit('user-joined', {
         participant: currentUser,
       });
@@ -64,7 +57,6 @@ export const setupMeetingSockets = (io: Server) => {
       console.log(`[Socket] ${currentUser.name} (${socket.id}) joined meeting ${meetingId} (Host: ${!!isHost})`);
     });
 
-    // WebRTC Signaling: relay offer, answer, ICE candidates
     socket.on('signal-peer', ({ toSocketId, signal }) => {
       io.to(toSocketId).emit('signal-peer', {
         fromSocketId: socket.id,
@@ -73,7 +65,6 @@ export const setupMeetingSockets = (io: Server) => {
       });
     });
 
-    // Real-Time Chat Message
     socket.on('send-message', async ({ meetingId, text }) => {
       if (!currentUser) return;
 
@@ -88,7 +79,6 @@ export const setupMeetingSockets = (io: Server) => {
       io.to(meetingId).emit('receive-message', message);
     });
 
-    // Typing indicator
     socket.on('typing', ({ meetingId, isTyping }) => {
       if (!currentUser) return;
       socket.to(meetingId).emit('user-typing', {
@@ -98,7 +88,6 @@ export const setupMeetingSockets = (io: Server) => {
       });
     });
 
-    // Participant Media States
     socket.on('toggle-audio', ({ isAudioMuted }) => {
       if (currentUser && currentMeetingId) {
         currentUser.isAudioMuted = isAudioMuted;
@@ -129,7 +118,6 @@ export const setupMeetingSockets = (io: Server) => {
       }
     });
 
-    // Update dynamic participant metadata without reconnecting
     socket.on('update-user-meta', ({ isHost }: { isHost?: boolean }) => {
       if (currentUser && typeof isHost === 'boolean') {
         currentUser.isHost = isHost;
@@ -140,7 +128,6 @@ export const setupMeetingSockets = (io: Server) => {
       }
     });
 
-    // Host & Moderator Controls (Google Meet style permissions)
     socket.on('host-control', ({ targetSocketId, action }) => {
       if (!currentMeetingId) return;
       const byName = currentUser?.name || 'Host';
@@ -168,7 +155,6 @@ export const setupMeetingSockets = (io: Server) => {
       }
     });
 
-    // End Meeting for All (Host/Admin Action)
     socket.on('end-meeting', async ({ meetingId }) => {
       const targetId = meetingId || currentMeetingId;
       if (!targetId) return;
@@ -190,7 +176,6 @@ export const setupMeetingSockets = (io: Server) => {
       console.log(`[Socket] Meeting ${targetId} ended for all participants by ${currentUser?.name}`);
     });
 
-    // Clean up leaving participant and auto-end room if 0 participants remain
     const handleLeaveRoom = async () => {
       if (currentMeetingId && currentUser) {
         const room = meetingRooms.get(currentMeetingId);
@@ -198,7 +183,6 @@ export const setupMeetingSockets = (io: Server) => {
           room.delete(socket.id);
           if (room.size === 0) {
             meetingRooms.delete(currentMeetingId);
-            // Auto-end the meeting when 0 participants remain
             await MeetingRepository.update(currentMeetingId, {
               status: 'ended',
               endTime: new Date(),

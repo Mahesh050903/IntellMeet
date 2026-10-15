@@ -33,7 +33,7 @@ export const getAnalytics = async (req: AuthenticatedRequest, res: Response, nex
           todo: todoTasks,
           completionRate: totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0,
         },
-        aiSummariesGenerated: meetings.length, // meetings eligible
+        aiSummariesGenerated: meetings.length,
       },
     });
   } catch (error) {

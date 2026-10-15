@@ -270,21 +270,17 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
       });
     }
 
-    // 1. Try finding user by googleId
     let user = await UserRepository.findByGoogleId(googleUser.googleId);
 
-    // 2. If not found by googleId, check if an account with this email already exists
     if (!user) {
       user = await UserRepository.findByEmail(googleUser.email);
       if (user) {
-        // Link Google ID and update avatar
         await UserRepository.updateGoogleId(
           user._id?.toString() || user.id,
           googleUser.googleId,
           user.avatar || googleUser.avatar
         );
       } else {
-        // Create new user with Google profile
         user = await UserRepository.create({
           name: googleUser.name,
           email: googleUser.email,
@@ -350,7 +346,6 @@ export const requestLoginOtp = async (req: Request, res: Response, next: NextFun
       });
     }
 
-    // If user disabled 2FA, log in immediately without OTP
     if (user.twoFactorEnabled === false) {
       const tokens = generateTokens({
         userId: user._id?.toString() || user.id,

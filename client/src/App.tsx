@@ -19,7 +19,6 @@ export const App: React.FC = () => {
 
     if (token && storedUser) {
       setUser(storedUser);
-      // Verify token freshness against backend
       apiFetch('/auth/users/me').then((res) => {
         if (res.success && res.data?.user) {
           setUser(res.data.user);

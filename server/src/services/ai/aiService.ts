@@ -75,7 +75,6 @@ ${transcriptText}`,
       }
     }
 
-    // Local Fallback Intelligence Engine (Extracts decisions, action items, and summary intelligently)
     return this.fallbackExtractor(meetingTitle, transcriptText);
   }
 
