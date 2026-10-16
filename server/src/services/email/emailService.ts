@@ -94,8 +94,11 @@ export class EmailService {
           console.log(`[EmailService] OTP email sent via Resend HTTPS API to ${toEmail}`);
           return { delivered: true };
         } else {
-          const errData = await response.json();
+          const errData: any = await response.json();
           console.warn(`[EmailService] Resend API returned error:`, errData);
+          if (errData?.message) {
+            return { delivered: false, error: errData.message };
+          }
         }
       } catch (err: any) {
         console.warn(`[EmailService] Resend API request failed:`, err?.message || err);

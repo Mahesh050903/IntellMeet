@@ -377,9 +377,9 @@ export const requestLoginOtp = async (req: Request, res: Response, next: NextFun
     const emailResult = await EmailService.sendOtpEmail(email, otp, 'login');
 
     if (!emailResult.delivered) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        error: 'Failed to send verification code to your email address. Please ensure the email is valid and try again.',
+        error: emailResult.error || 'Failed to send verification code to your email address. Please ensure the email is valid and try again.',
       });
     }
 
@@ -422,9 +422,9 @@ export const requestRegisterOtp = async (req: Request, res: Response, next: Next
     const emailResult = await EmailService.sendOtpEmail(email, otp, 'register');
 
     if (!emailResult.delivered) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        error: 'Failed to send verification code to your email address. Please ensure the email is valid and try again.',
+        error: emailResult.error || 'Failed to send verification code to your email address. Please ensure the email is valid and try again.',
       });
     }
 
@@ -543,9 +543,9 @@ export const resendOtp = async (req: Request, res: Response, next: NextFunction)
     const emailResult = await EmailService.sendOtpEmail(email, otp, purpose);
 
     if (!emailResult.delivered) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        error: 'Failed to resend verification code to your email address. Please try again later.',
+        error: emailResult.error || 'Failed to resend verification code to your email address. Please try again later.',
       });
     }
 
@@ -614,9 +614,9 @@ export const requestForgotPasswordOtp = async (req: Request, res: Response, next
     const emailResult = await EmailService.sendOtpEmail(email, otp, 'forgot-password');
 
     if (!emailResult.delivered) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        error: 'Failed to send password reset code to your email address. Please ensure the email is correct.',
+        error: emailResult.error || 'Failed to send password reset code to your email address. Please ensure the email is correct.',
       });
     }
 
