@@ -18,9 +18,26 @@ export const createApp = (): Express => {
   const app = express();
 
   app.use(helmet());
+  const allowedOrigins = [
+    'https://intellmeet.dpdns.org',
+    'http://intellmeet.dpdns.org',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
+  if (process.env.CLIENT_URL) {
+    const clean = process.env.CLIENT_URL.replace(/\/$/, '');
+    if (!allowedOrigins.includes(clean)) allowedOrigins.push(clean);
+  }
+
   app.use(
     cors({
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+          callback(null, true);
+        } else {
+          callback(null, true);
+        }
+      },
       credentials: true,
     })
   );

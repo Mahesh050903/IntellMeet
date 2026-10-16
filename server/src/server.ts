@@ -13,9 +13,20 @@ const startServer = async () => {
   const app = createApp();
   const httpServer = http.createServer(app);
 
+  const allowedOrigins = [
+    'https://intellmeet.dpdns.org',
+    'http://intellmeet.dpdns.org',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
+  if (CLIENT_URL) {
+    const clean = CLIENT_URL.replace(/\/$/, '');
+    if (!allowedOrigins.includes(clean)) allowedOrigins.push(clean);
+  }
+
   const io = new Server(httpServer, {
     cors: {
-      origin: CLIENT_URL,
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true,
     },

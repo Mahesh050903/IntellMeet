@@ -1,4 +1,6 @@
-const API_BASE = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '') + '/api';
+export const DEFAULT_BACKEND_URL = 'https://intellmeet-backend-fbp8.onrender.com';
+const rawApiUrl = (import.meta as any).env?.VITE_API_URL || DEFAULT_BACKEND_URL;
+const API_BASE = ((rawApiUrl && rawApiUrl.trim() ? rawApiUrl : DEFAULT_BACKEND_URL).replace(/\/$/, '')) + '/api';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -35,12 +37,32 @@ export const apiFetch = async <T = any>(endpoint: string, options: RequestInit =
       headers,
     });
 
-    const data: ApiResponse<T> = await res.json();
-    return data;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data: ApiResponse<T> = await res.json();
+      return data;
+    }
+
+    const text = await res.text();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: `Server responded with ${res.status}: ${res.statusText || 'Service Unavailable'}. Please wait a moment for the server to wake up.`,
+      };
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        error: text || 'Invalid response from server',
+      };
+    }
   } catch (error: any) {
     return {
       success: false,
-      error: error.message || 'Network request failed',
+      error: error.message || 'Network request failed. Please check your internet connection.',
     };
   }
 };

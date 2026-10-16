@@ -586,7 +586,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   };
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || '/';
+    const socketUrl = import.meta.env.VITE_API_URL || 'https://intellmeet-backend-fbp8.onrender.com';
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
     });
