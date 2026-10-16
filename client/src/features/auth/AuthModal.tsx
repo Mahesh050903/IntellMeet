@@ -57,10 +57,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+  }>({});
+
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
   const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
   const DEFAULT_GOOGLE_CLIENT_ID = '721180516856-imgqm4io20lck018u7ad84hs4aft020h.apps.googleusercontent.com';
@@ -188,16 +197,63 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
+  const validateForm = () => {
+    const errors: { name?: string; email?: string; password?: string } = {};
+
+    if (isRegister) {
+      if (!name || !name.trim()) {
+        errors.name = 'Full Name likhna zaroori hai (Please enter your name)';
+      } else if (name.trim().length < 2) {
+        errors.name = 'Name kam se kam 2 characters ka hona chahiye';
+      }
+    }
+
+    if (!email || !email.trim()) {
+      errors.email = 'Email Address likhna zaroori hai (Please enter email)';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        errors.email = 'Kripya sahi email address enter karein (e.g. name@domain.com)';
+      }
+    }
+
+    if (!password) {
+      errors.password = 'Password likhna zaroori hai (Please enter password)';
+    } else if (password.length < 6) {
+      errors.password = 'Password kam se kam 6 characters ka hona chahiye';
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setError('Kripya sabhi box me sahi details bharein.');
+      if (errors.name) {
+        nameInputRef.current?.focus();
+      } else if (errors.email) {
+        emailInputRef.current?.focus();
+      } else if (errors.password) {
+        passwordInputRef.current?.focus();
+      }
+      return false;
+    }
+
+    return true;
+  };
+
   const handleInitiateAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
       const endpoint = isRegister ? '/auth/register-otp-request' : '/auth/login-otp-request';
       const payload = isRegister
-        ? { name, email, password, role, avatar }
-        : { email, password };
+        ? { name: name.trim(), email: email.trim(), password, role, avatar }
+        : { email: email.trim(), password };
 
       const res = await apiFetch(endpoint, {
         method: 'POST',
@@ -205,7 +261,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       });
 
       if (!res.success) {
-        setError(res.error || 'Authentication failed');
+        const errorMsg = res.error || 'Authentication failed';
+        setError(errorMsg);
+
+        const lower = errorMsg.toLowerCase();
+        if (
+          lower.includes('email') ||
+          lower.includes('resend') ||
+          lower.includes('domain') ||
+          lower.includes('already exists') ||
+          lower.includes('account')
+        ) {
+          setFieldErrors((prev) => ({ ...prev, email: errorMsg }));
+          emailInputRef.current?.focus();
+        } else if (lower.includes('password')) {
+          setFieldErrors((prev) => ({ ...prev, password: errorMsg }));
+          passwordInputRef.current?.focus();
+        }
+
         setLoading(false);
         return;
       }
@@ -215,7 +288,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       setOtpTimer(60);
       setCanResend(false);
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      const msg = err.message || 'An unexpected error occurred';
+      setError(msg);
+      if (msg.toLowerCase().includes('email')) {
+        setFieldErrors((prev) => ({ ...prev, email: msg }));
+      }
     } finally {
       setLoading(false);
     }
@@ -982,7 +1059,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             }}>
               <button
                 type="button"
-                onClick={() => { setIsRegister(false); setError(null); }}
+                onClick={() => {
+                  setIsRegister(false);
+                  setError(null);
+                  setFieldErrors({});
+                }}
                 style={{
                   flex: 1,
                   padding: '7px',
@@ -1000,7 +1081,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               </button>
               <button
                 type="button"
-                onClick={() => { setIsRegister(true); setError(null); }}
+                onClick={() => {
+                  setIsRegister(true);
+                  setError(null);
+                  setFieldErrors({});
+                }}
                 style={{
                   flex: 1,
                   padding: '7px',
@@ -1018,7 +1103,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               </button>
             </div>
 
-            <form onSubmit={handleInitiateAuth} style={{ display: 'flex', flexDirection: 'column', gap: isRegister ? '10px' : '14px' }}>
+            <form
+              noValidate
+              onSubmit={handleInitiateAuth}
+              style={{ display: 'flex', flexDirection: 'column', gap: isRegister ? '12px' : '14px' }}
+            >
               {isRegister && (
                 <div style={{
                   display: 'flex',
@@ -1136,52 +1225,101 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               {isRegister && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500 }}>
-                    Full Name
+                    Full Name <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <User size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                    <User size={16} color={fieldErrors.name ? '#f87171' : '#64748b'} style={{ position: 'absolute', left: '12px', top: '13px' }} />
                     <input
+                      ref={nameInputRef}
                       type="text"
-                      required
                       placeholder="e.g. Rahul Sharma"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      style={{ width: '100%', paddingLeft: '38px' }}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
+                      style={{
+                        width: '100%',
+                        paddingLeft: '38px',
+                        borderColor: fieldErrors.name ? '#ef4444' : undefined,
+                        boxShadow: fieldErrors.name ? '0 0 0 1px rgba(239, 68, 68, 0.45)' : undefined,
+                      }}
                     />
                   </div>
+                  {fieldErrors.name && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.74rem', marginTop: '5px' }}>
+                      <AlertCircle size={13} style={{ flexShrink: 0 }} />
+                      <span>{fieldErrors.name}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500 }}>
-                  Email Address
+                  Email Address <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                  <Mail size={16} color={fieldErrors.email ? '#f87171' : '#64748b'} style={{ position: 'absolute', left: '12px', top: '13px' }} />
                   <input
+                    ref={emailInputRef}
                     type="email"
-                    required
                     placeholder="you@company.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={{ width: '100%', paddingLeft: '38px' }}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
+                    style={{
+                      width: '100%',
+                      paddingLeft: '38px',
+                      borderColor: fieldErrors.email ? '#ef4444' : undefined,
+                      boxShadow: fieldErrors.email ? '0 0 0 1px rgba(239, 68, 68, 0.45)' : undefined,
+                    }}
                   />
                 </div>
+                {fieldErrors.email && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '6px',
+                    color: '#f87171',
+                    fontSize: '0.74rem',
+                    marginTop: '5px',
+                    lineHeight: 1.35,
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                  }}>
+                    <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <span>{fieldErrors.email}</span>
+                  </div>
+                )}
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500 }}>
-                  Password
+                  Password <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '13px' }} />
+                  <Lock size={16} color={fieldErrors.password ? '#f87171' : '#64748b'} style={{ position: 'absolute', left: '12px', top: '13px' }} />
                   <input
+                    ref={passwordInputRef}
                     type={showPassword ? 'text' : 'password'}
-                    required
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={{ width: '100%', paddingLeft: '38px', paddingRight: '40px' }}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
+                    style={{
+                      width: '100%',
+                      paddingLeft: '38px',
+                      paddingRight: '40px',
+                      borderColor: fieldErrors.password ? '#ef4444' : undefined,
+                      boxShadow: fieldErrors.password ? '0 0 0 1px rgba(239, 68, 68, 0.45)' : undefined,
+                    }}
                   />
                   <button
                     type="button"
@@ -1207,6 +1345,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.74rem', marginTop: '5px' }}>
+                    <AlertCircle size={13} style={{ flexShrink: 0 }} />
+                    <span>{fieldErrors.password}</span>
+                  </div>
+                )}
                 {!isRegister && (
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
                     <button
