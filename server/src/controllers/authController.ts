@@ -6,6 +6,7 @@ import { generateTokens, verifyRefreshToken } from '../utils/token.js';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { OtpService } from '../services/otp/otpService.js';
 import { EmailService } from '../services/email/emailService.js';
+import { CloudinaryService } from '../services/storage/cloudinaryService.js';
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -490,12 +491,24 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
         });
       }
 
+      let avatarUrl = regData.avatar;
+      if (avatarUrl && (avatarUrl.startsWith('data:image') || avatarUrl.length > 500)) {
+        try {
+          const cld = await CloudinaryService.uploadImage(avatarUrl, 'intellmeet/avatars');
+          if (cld?.url) {
+            avatarUrl = cld.url;
+          }
+        } catch (err) {
+          console.warn('[AuthController] Failed to upload avatar to Cloudinary:', err);
+        }
+      }
+
       const user = await UserRepository.create({
         name: regData.name,
         email: regData.email,
         passwordHash: regData.passwordHash,
         role: regData.role || 'member',
-        avatar: regData.avatar,
+        avatar: avatarUrl,
         authProvider: 'local',
       });
 
@@ -569,9 +582,21 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response, ne
     }
 
     const { name, avatar, twoFactorEnabled } = req.body;
+    let avatarUrl = avatar;
+    if (avatarUrl && (avatarUrl.startsWith('data:image') || avatarUrl.length > 500)) {
+      try {
+        const cld = await CloudinaryService.uploadImage(avatarUrl, 'intellmeet/avatars');
+        if (cld?.url) {
+          avatarUrl = cld.url;
+        }
+      } catch (err) {
+        console.warn('[AuthController] Failed to upload avatar to Cloudinary:', err);
+      }
+    }
+
     const updatedUser = await UserRepository.updateProfile(req.user.userId, {
       name,
-      avatar,
+      avatar: avatarUrl,
       twoFactorEnabled,
     });
 

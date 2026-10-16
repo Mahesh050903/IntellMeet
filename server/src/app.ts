@@ -10,6 +10,7 @@ import meetingRoutes from './routes/meetingRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -54,6 +55,7 @@ export const createApp = (): Express => {
   app.use('/api/tasks', taskRoutes);
   app.use('/api/teams', teamRoutes);
   app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/upload', uploadRoutes);
 
   app.use('*', (req, res) => {
     res.status(404).json({
