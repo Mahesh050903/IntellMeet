@@ -30,23 +30,29 @@ const RemoteParticipantVideo: React.FC<{
       }
       videoRef.current.play().catch(() => {});
     }
-  }, [stream, peer.isVideoOff]);
+  }, [stream, peer.isVideoOff, peer.isScreenSharing]);
 
-  const hasVideo = stream && stream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live') && !peer.isVideoOff;
+  const hasVideo =
+    stream &&
+    stream.getVideoTracks().length > 0 &&
+    stream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live') &&
+    (!peer.isVideoOff || peer.isScreenSharing);
 
   return (
     <div
+      className={peer.isScreenSharing ? 'screen-share-active-tile' : ''}
       style={{
         position: 'relative',
         borderRadius: '16px',
         overflow: 'hidden',
         background: '#111827',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        border: peer.isScreenSharing ? '2px solid rgba(14, 165, 233, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)',
         aspectRatio: '16/9',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+        boxShadow: peer.isScreenSharing ? '0 8px 32px rgba(14, 165, 233, 0.25)' : '0 8px 32px rgba(0, 0, 0, 0.4)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        gridColumn: peer.isScreenSharing ? '1 / -1' : undefined,
       }}
     >
       <video
@@ -56,10 +62,35 @@ const RemoteParticipantVideo: React.FC<{
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: peer.isScreenSharing ? 'contain' : 'cover',
           display: hasVideo ? 'block' : 'none',
         }}
       />
+
+      {peer.isScreenSharing && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(14, 165, 233, 0.9)',
+            backdropFilter: 'blur(8px)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.74rem',
+            fontWeight: 600,
+            color: '#ffffff',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+            zIndex: 4,
+          }}
+        >
+          <ScreenShare size={13} />
+          <span>{peer.name}&apos;s Screen</span>
+        </div>
+      )}
 
       {!hasVideo && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
@@ -323,9 +354,22 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       iceCandidatePoolSize: 10,
     });
 
+    try {
+      pc.addTransceiver('video', { direction: 'sendrecv' });
+      pc.addTransceiver('audio', { direction: 'sendrecv' });
+    } catch {}
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current!);
+        const senders = pc.getSenders();
+        const existing = senders.find((s) => s.track?.kind === track.kind || (s as any).kind === track.kind);
+        if (existing) {
+          existing.replaceTrack(track).catch(() => {});
+        } else {
+          try {
+            pc.addTrack(track, localStreamRef.current!);
+          } catch {}
+        }
       });
     }
 
@@ -418,14 +462,29 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   }, [localStream, isVideoOff]);
 
   const replaceVideoTrack = (newTrack: MediaStreamTrack | null) => {
-    peerConnectionsRef.current.forEach((pc) => {
+    peerConnectionsRef.current.forEach((pc, remoteSocketId) => {
       const senders = pc.getSenders();
       const videoSender = senders.find((s) => (s.track && s.track.kind === 'video') || (s as any).kind === 'video');
-      if (videoSender && newTrack) {
+      if (videoSender) {
+        if (newTrack) newTrack.enabled = true;
         videoSender.replaceTrack(newTrack).catch((err) => console.warn('[WebRTC] Track replace error:', err));
-      } else if (!videoSender && newTrack && localStreamRef.current) {
+      } else if (newTrack) {
         try {
-          pc.addTrack(newTrack, localStreamRef.current);
+          newTrack.enabled = true;
+          const stream = localStreamRef.current || new MediaStream([newTrack]);
+          pc.addTrack(newTrack, stream);
+          pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+            .then((offer) => pc.setLocalDescription(offer))
+            .then(() => {
+              socketRef.current?.emit('signal-peer', {
+                toSocketId: remoteSocketId,
+                signal: {
+                  type: 'offer',
+                  sdp: pc.localDescription?.sdp,
+                },
+              });
+            })
+            .catch((err) => console.warn('[WebRTC] Renegotiation error:', err));
         } catch (e) {
           console.warn('[WebRTC] pc.addTrack error:', e);
         }
@@ -923,33 +982,45 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   const toggleScreenShare = async () => {
     if (!isScreenSharing) {
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: false,
+        });
+        const screenTrack = screenStream.getVideoTracks()[0];
+        if (!screenTrack) return;
+
+        screenTrack.enabled = true;
+
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = screenStream;
+          localVideoRef.current.play().catch(() => {});
         }
         setIsScreenSharing(true);
-        const screenTrack = screenStream.getVideoTracks()[0];
         replaceVideoTrack(screenTrack);
         socketRef.current?.emit('toggle-screen-share', { isScreenSharing: true });
 
         screenTrack.onended = () => {
           setIsScreenSharing(false);
+          const camTrack = localStreamRef.current?.getVideoTracks().find((t) => t.readyState === 'live') || null;
+          if (camTrack) camTrack.enabled = !isVideoOff;
           if (localVideoRef.current && localStreamRef.current) {
             localVideoRef.current.srcObject = localStreamRef.current;
+            localVideoRef.current.play().catch(() => {});
           }
-          const camTrack = localStreamRef.current?.getVideoTracks()[0] || null;
           replaceVideoTrack(camTrack);
           socketRef.current?.emit('toggle-screen-share', { isScreenSharing: false });
         };
       } catch (err) {
-        console.warn('Screen share cancelled', err);
+        console.warn('Screen share cancelled or failed:', err);
       }
     } else {
       setIsScreenSharing(false);
+      const camTrack = localStreamRef.current?.getVideoTracks().find((t) => t.readyState === 'live') || null;
+      if (camTrack) camTrack.enabled = !isVideoOff;
       if (localVideoRef.current && localStreamRef.current) {
         localVideoRef.current.srcObject = localStreamRef.current;
+        localVideoRef.current.play().catch(() => {});
       }
-      const camTrack = localStreamRef.current?.getVideoTracks()[0] || null;
       replaceVideoTrack(camTrack);
       socketRef.current?.emit('toggle-screen-share', { isScreenSharing: false });
     }
@@ -1015,7 +1086,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       position: 'relative',
       overflow: 'hidden',
     }}>
-      <div style={{
+      <div className="meeting-top-bar" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -1025,8 +1096,8 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
         zIndex: 10,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+          <div className="meeting-live-badge" style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -1038,11 +1109,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             fontSize: '0.68rem',
             fontWeight: 600,
             textTransform: 'uppercase',
+            flexShrink: 0,
           }}>
             <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#f43f5e' }} />
-            Live Session
+            <span className="meeting-live-text">Live Session</span>
           </div>
-          <h3 style={{ fontSize: '0.96rem', fontWeight: 600, color: '#f4f4f5' }}>{meetingTitle}</h3>
+          <h3 className="meeting-top-title" style={{ fontSize: '0.96rem', fontWeight: 600, color: '#f4f4f5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{meetingTitle}</h3>
           <button
             onClick={copyMeetingId}
             title="Copy Meeting ID"
@@ -1059,15 +1131,16 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               fontFamily: 'monospace',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              flexShrink: 0,
             }}
           >
             {copiedLink ? <Check size={11} color="#10b981" /> : <Copy size={11} />}
-            <span>{copiedLink ? 'Copied ID' : 'Copy ID'}</span>
+            <span className="meeting-btn-text">{copiedLink ? 'Copied ID' : 'Copy ID'}</span>
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <div className="meeting-connected-pill" style={{
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
@@ -1080,11 +1153,13 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             fontWeight: 500,
           }}>
             <Users size={12} color="#10b981" />
-            <span>{participants.length + 1} connected</span>
+            <span className="meeting-btn-text">{participants.length + 1} connected</span>
+            <span className="meeting-connected-count-only">{participants.length + 1}</span>
           </div>
 
           <button
             onClick={() => setActiveSidePanel(activeSidePanel === 'participants' ? null : 'participants')}
+            title={`People (${participants.length + 1})`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1101,11 +1176,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             }}
           >
             <Users size={14} />
-            <span>People ({participants.length + 1})</span>
+            <span className="meeting-btn-text">People ({participants.length + 1})</span>
           </button>
 
           <button
             onClick={() => setActiveSidePanel(activeSidePanel === 'chat' ? null : 'chat')}
+            title="Chat"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1122,11 +1198,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             }}
           >
             <MessageSquare size={14} />
-            <span>Chat</span>
+            <span className="meeting-btn-text">Chat</span>
           </button>
 
           <button
             onClick={() => setActiveSidePanel(activeSidePanel === 'ai' ? null : 'ai')}
+            title="AI Intelligence"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1143,7 +1220,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
             }}
           >
             <Sparkles size={14} color="#10b981" />
-            <span>AI Intelligence</span>
+            <span className="meeting-btn-text">AI Intelligence</span>
           </button>
         </div>
       </div>
@@ -1265,27 +1342,34 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       )}
 
       <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
-        <div style={{
-          flex: 1,
-          padding: '16px',
-          display: 'grid',
-          gridTemplateColumns: participants.length > 0 ? 'repeat(auto-fit, minmax(360px, 1fr))' : '1fr',
-          gap: '16px',
-          alignContent: 'center',
-          overflowY: 'auto',
-        }}>
-          <div style={{
-            position: 'relative',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            background: '#0f172a',
-            border: '2px solid rgba(99, 102, 241, 0.35)',
-            aspectRatio: '16/9',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+        <div
+          className={`meeting-video-grid ${isScreenSharing || participants.some((p) => p.isScreenSharing) ? 'screen-sharing-active' : ''}`}
+          style={{
+            flex: 1,
+            padding: 'clamp(8px, 2vw, 16px)',
+            display: 'grid',
+            gridTemplateColumns: participants.length > 0 ? 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' : '1fr',
+            gap: 'clamp(8px, 2vw, 16px)',
+            alignContent: 'center',
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            className={isScreenSharing ? 'screen-share-active-tile' : ''}
+            style={{
+              position: 'relative',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              background: '#0f172a',
+              border: isScreenSharing ? '2px solid rgba(14, 165, 233, 0.7)' : '2px solid rgba(99, 102, 241, 0.35)',
+              aspectRatio: '16/9',
+              boxShadow: isScreenSharing ? '0 8px 32px rgba(14, 165, 233, 0.25)' : '0 8px 32px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gridColumn: isScreenSharing ? '1 / -1' : undefined,
+            }}
+          >
             <video
               ref={localVideoRef}
               autoPlay
@@ -1297,13 +1381,38 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
+                objectFit: isScreenSharing ? 'contain' : 'cover',
                 transform: isScreenSharing ? 'none' : 'scaleX(-1)',
-                display: isVideoOff ? 'none' : 'block',
+                display: isVideoOff && !isScreenSharing ? 'none' : 'block',
               }}
             />
 
-            {isVideoOff && (
+            {isScreenSharing && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(14, 165, 233, 0.9)',
+                  backdropFilter: 'blur(8px)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+                  zIndex: 4,
+                }}
+              >
+                <ScreenShare size={13} />
+                <span>You are sharing your screen</span>
+              </div>
+            )}
+
+            {isVideoOff && !isScreenSharing && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '70px',
