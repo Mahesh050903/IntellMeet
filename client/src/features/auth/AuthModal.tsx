@@ -60,16 +60,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [showSetupModal, setShowSetupModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
-  const envClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
-  const [activeClientId, setActiveClientId] = useState<string>(
-    envClientId || localStorage.getItem('intellmeet_google_client_id') || ''
+  const DEFAULT_GOOGLE_CLIENT_ID = '721180516856-imgqm4io20lck018u7ad84hs4aft020h.apps.googleusercontent.com';
+  const envClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+  const [activeClientId] = useState<string>(
+    envClientId || localStorage.getItem('intellmeet_google_client_id') || DEFAULT_GOOGLE_CLIENT_ID
   );
-  const [inputClientId, setInputClientId] = useState<string>(activeClientId);
 
   useEffect(() => {
     let interval: any = null;
@@ -187,7 +186,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       setError(err.message || 'An error occurred during Google authentication');
     } finally {
       setGoogleLoading(false);
-      setShowSetupModal(false);
     }
   };
 
@@ -409,13 +407,78 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  const handleSaveClientId = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = inputClientId.trim();
-    if (!trimmed) return;
-    localStorage.setItem('intellmeet_google_client_id', trimmed);
-    setActiveClientId(trimmed);
-    setShowSetupModal(false);
+  const triggerGoogleSignIn = () => {
+    setError(null);
+    setGoogleLoading(true);
+
+    const clientId = activeClientId || DEFAULT_GOOGLE_CLIENT_ID;
+
+    if (typeof window === 'undefined') {
+      setError('Google Sign-In is unavailable in this environment');
+      setGoogleLoading(false);
+      return;
+    }
+
+    const google = (window as any).google;
+
+    // Direct Google OAuth2 Account Selector Popup
+    if (google?.accounts?.oauth2) {
+      try {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
+              setGoogleLoading(false);
+              if (tokenResponse.error !== 'access_denied') {
+                setError(`Google Sign-In failed: ${tokenResponse.error_description || tokenResponse.error}`);
+              }
+              return;
+            }
+
+            try {
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              });
+              if (!res.ok) throw new Error('Failed to fetch Google profile');
+              const profile = await res.json();
+              await processGoogleAuth({
+                userProfile: {
+                  email: profile.email,
+                  name: profile.name || profile.email.split('@')[0],
+                  googleId: profile.sub,
+                  avatar: profile.picture,
+                },
+              });
+            } catch (err: any) {
+              setError(err.message || 'Google authentication failed');
+              setGoogleLoading(false);
+            }
+          },
+        });
+        tokenClient.requestAccessToken();
+        return;
+      } catch (err: any) {
+        console.warn('OAuth2 popup error, trying ID prompt:', err);
+      }
+    }
+
+    // Fallback: Google One Tap / ID Prompt
+    if (google?.accounts?.id) {
+      try {
+        google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setGoogleLoading(false);
+          }
+        });
+        return;
+      } catch (err: any) {
+        console.warn('Google prompt error:', err);
+      }
+    }
+
+    setGoogleLoading(false);
+    setError('Google Sign-In service is loading. Please refresh and try again.');
   };
 
   return (
@@ -896,58 +959,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         ) : (
           <>
             <div style={{ marginBottom: '18px' }}>
-              <div
-                ref={googleBtnContainerRef}
+              <button
+                type="button"
+                onClick={triggerGoogleSignIn}
+                disabled={googleLoading}
                 style={{
                   width: '100%',
-                  minHeight: activeClientId ? '44px' : '0px',
-                  display: activeClientId ? 'flex' : 'none',
-                  justifyContent: 'center',
+                  display: 'flex',
                   alignItems: 'center',
-                  marginBottom: '10px',
+                  justifyContent: 'center',
+                  gap: '12px',
+                  padding: '11px 16px',
+                  background: '#ffffff',
+                  color: '#1f2937',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  fontSize: '0.92rem',
+                  fontWeight: 600,
+                  cursor: googleLoading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.18s ease',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                  opacity: googleLoading ? 0.7 : 1,
                 }}
-              />
-
-              {(!activeClientId || googleLoading) && (
-                <button
-                  type="button"
-                  onClick={() => setShowSetupModal(true)}
-                  disabled={googleLoading}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    padding: '11px 16px',
-                    background: '#ffffff',
-                    color: '#1f2937',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    fontSize: '0.92rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.18s ease',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
-                >
-                  {googleLoading ? (
-                    <span>Signing in with Google...</span>
-                  ) : (
-                    <>
-                      <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.36 7.35 24 12 24z"/>
-                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                      </svg>
-                      <span>Continue with Google</span>
-                    </>
-                  )}
-                </button>
-              )}
+                onMouseEnter={(e) => { if (!googleLoading) e.currentTarget.style.background = '#f3f4f6'; }}
+                onMouseLeave={(e) => { if (!googleLoading) e.currentTarget.style.background = '#ffffff'; }}
+              >
+                {googleLoading ? (
+                  <span>Signing in with Google...</span>
+                ) : (
+                  <>
+                    <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.36 7.35 24 12 24z"/>
+                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div style={{
@@ -1273,102 +1323,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         )}
 
       </div>
-
-      {showSetupModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 200,
-          padding: '20px',
-        }}>
-          <div className="glass-panel modal-dialog-responsive" style={{
-            maxWidth: '480px',
-            width: '100%',
-            padding: 'clamp(18px, 4vw, 28px)',
-            position: 'relative',
-            borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
-          }}>
-            <button
-              onClick={() => setShowSetupModal(false)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'none',
-                border: 'none',
-                color: '#94a3b8',
-                cursor: 'pointer',
-              }}
-            >
-              <X size={18} />
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(99, 102, 241, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Key size={20} color="#818cf8" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
-                  Real Google Sign-In Setup
-                </h3>
-                <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '2px 0 0' }}>
-                  Connect your Google Cloud OAuth 2.0 Client ID
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveClientId}>
-              <label style={{ display: 'block', fontSize: '0.82rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 500 }}>
-                Enter your Google Client ID:
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. 123456789-abcdef.apps.googleusercontent.com"
-                value={inputClientId}
-                onChange={(e) => setInputClientId(e.target.value)}
-                style={{
-                  width: '100%',
-                  fontSize: '0.82rem',
-                  padding: '9px 12px',
-                  marginBottom: '14px',
-                }}
-              />
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: '8px',
-                    fontSize: '0.86rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  Save & Enable Google Login
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
