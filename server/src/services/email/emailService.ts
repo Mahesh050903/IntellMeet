@@ -17,6 +17,9 @@ export class EmailService {
         port,
         secure: port === 465,
         auth: { user, pass },
+        connectionTimeout: 4000,
+        greetingTimeout: 4000,
+        socketTimeout: 5000,
       });
       return this.transporter;
     }
@@ -25,9 +28,6 @@ export class EmailService {
   }
 
   public static async sendOtpEmail(toEmail: string, otpCode: string, purpose: 'login' | 'register' | 'forgot-password' = 'login'): Promise<{ delivered: boolean; error?: string }> {
-    const transporter = this.getTransporter();
-    const defaultUser = process.env.SMTP_USER || 'celeste.araceli03@gmail.com';
-    const fromAddress = process.env.SMTP_FROM || `"IntellMeet Security" <${defaultUser}>`;
     const actionLabel = purpose === 'register' ? 'Account Registration' : purpose === 'forgot-password' ? 'Password Reset' : 'Account Login';
 
     const htmlContent = `
@@ -71,24 +71,93 @@ export class EmailService {
       </html>
     `;
 
-    if (!transporter) {
-      console.error(`[EmailService] SMTP transporter could not be initialized.`);
-      return { delivered: false, error: 'SMTP configuration missing or unavailable' };
+    // 1. Try HTTPS-based Resend API (Works on Render Port 443 without firewall blocking)
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      try {
+        const fromEmail = process.env.RESEND_FROM || 'IntellMeet <onboarding@resend.dev>';
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [toEmail],
+            subject: `${otpCode} is your IntellMeet verification code`,
+            html: htmlContent,
+          }),
+        });
+
+        if (response.ok) {
+          console.log(`[EmailService] OTP email sent via Resend HTTPS API to ${toEmail}`);
+          return { delivered: true };
+        } else {
+          const errData = await response.json();
+          console.warn(`[EmailService] Resend API returned error:`, errData);
+        }
+      } catch (err: any) {
+        console.warn(`[EmailService] Resend API request failed:`, err?.message || err);
+      }
     }
 
-    try {
-      await transporter.sendMail({
-        from: fromAddress,
-        to: toEmail,
-        subject: `${otpCode} is your IntellMeet verification code`,
-        html: htmlContent,
-        text: `Your IntellMeet ${actionLabel} OTP code is: ${otpCode}. Valid for 5 minutes.`,
-      });
-      console.log(`[EmailService] OTP email successfully sent to ${toEmail}`);
-      return { delivered: true };
-    } catch (err: any) {
-      console.error(`[EmailService] SMTP delivery failed to ${toEmail}:`, err?.message || err);
-      return { delivered: false, error: err?.message || 'Email delivery failed' };
+    // 2. Try HTTPS-based Brevo API (Works on Render Port 443 without firewall blocking)
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    if (brevoApiKey) {
+      try {
+        const senderEmail = process.env.SMTP_USER || 'celeste.araceli03@gmail.com';
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevoApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: 'IntellMeet Security', email: senderEmail },
+            to: [{ email: toEmail }],
+            subject: `${otpCode} is your IntellMeet verification code`,
+            htmlContent: htmlContent,
+          }),
+        });
+
+        if (response.ok) {
+          console.log(`[EmailService] OTP email sent via Brevo HTTPS API to ${toEmail}`);
+          return { delivered: true };
+        } else {
+          const errData = await response.json();
+          console.warn(`[EmailService] Brevo API returned error:`, errData);
+        }
+      } catch (err: any) {
+        console.warn(`[EmailService] Brevo API request failed:`, err?.message || err);
+      }
     }
+
+    // 3. Fallback to Nodemailer SMTP with strict 4s timeout (so it never hangs)
+    const transporter = this.getTransporter();
+    const defaultUser = process.env.SMTP_USER || 'celeste.araceli03@gmail.com';
+    const fromAddress = process.env.SMTP_FROM || `"IntellMeet Security" <${defaultUser}>`;
+
+    if (transporter) {
+      try {
+        await transporter.sendMail({
+          from: fromAddress,
+          to: toEmail,
+          subject: `${otpCode} is your IntellMeet verification code`,
+          html: htmlContent,
+          text: `Your IntellMeet ${actionLabel} OTP code is: ${otpCode}. Valid for 5 minutes.`,
+        });
+        console.log(`[EmailService] OTP email successfully sent via SMTP to ${toEmail}`);
+        return { delivered: true };
+      } catch (err: any) {
+        console.error(`[EmailService] SMTP delivery failed to ${toEmail}:`, err?.message || err);
+        return {
+          delivered: false,
+          error: 'Email delivery timed out or blocked by hosting firewall (SMTP ports 587/465). Please configure RESEND_API_KEY in Render environment.',
+        };
+      }
+    }
+
+    return { delivered: false, error: 'Email service configuration unavailable' };
   }
 }
