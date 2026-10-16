@@ -6,10 +6,10 @@ export class EmailService {
   private static getTransporter(): Transporter | null {
     if (this.transporter) return this.transporter;
 
-    const host = process.env.SMTP_HOST;
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     const port = parseInt(process.env.SMTP_PORT || '587', 10);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const user = process.env.SMTP_USER || 'celeste.araceli03@gmail.com';
+    const pass = process.env.SMTP_PASS || 'ycktowueyyczeluh';
 
     if (host && user && pass) {
       this.transporter = nodemailer.createTransport({
@@ -24,13 +24,10 @@ export class EmailService {
     return null;
   }
 
-  public static async sendOtpEmail(toEmail: string, otpCode: string, purpose: 'login' | 'register' | 'forgot-password' = 'login'): Promise<{ delivered: boolean; devOtp?: string }> {
-    if (process.env.NODE_ENV === 'test') {
-      return { delivered: true, devOtp: otpCode };
-    }
-
+  public static async sendOtpEmail(toEmail: string, otpCode: string, purpose: 'login' | 'register' | 'forgot-password' = 'login'): Promise<{ delivered: boolean; error?: string }> {
     const transporter = this.getTransporter();
-    const fromAddress = process.env.SMTP_FROM || '"IntellMeet Security" <no-reply@intellmeet.com>';
+    const defaultUser = process.env.SMTP_USER || 'celeste.araceli03@gmail.com';
+    const fromAddress = process.env.SMTP_FROM || `"IntellMeet Security" <${defaultUser}>`;
     const actionLabel = purpose === 'register' ? 'Account Registration' : purpose === 'forgot-password' ? 'Password Reset' : 'Account Login';
 
     const htmlContent = `
@@ -74,24 +71,24 @@ export class EmailService {
       </html>
     `;
 
-    if (transporter) {
-      try {
-        await transporter.sendMail({
-          from: fromAddress,
-          to: toEmail,
-          subject: `${otpCode} is your IntellMeet verification code`,
-          html: htmlContent,
-          text: `Your IntellMeet ${actionLabel} OTP code is: ${otpCode}. Valid for 5 minutes.`,
-        });
-        console.log(`[EmailService] OTP email successfully sent to ${toEmail}`);
-        return { delivered: true };
-      } catch (err) {
-        console.warn(`[EmailService] SMTP delivery failed to ${toEmail}, logging OTP locally:`, err);
-        return { delivered: false, devOtp: otpCode };
-      }
-    } else {
-      console.log(`[EmailService - DEV/LOCAL] 📩 OTP for ${toEmail}: ${otpCode}`);
-      return { delivered: false, devOtp: otpCode };
+    if (!transporter) {
+      console.error(`[EmailService] SMTP transporter could not be initialized.`);
+      return { delivered: false, error: 'SMTP configuration missing or unavailable' };
+    }
+
+    try {
+      await transporter.sendMail({
+        from: fromAddress,
+        to: toEmail,
+        subject: `${otpCode} is your IntellMeet verification code`,
+        html: htmlContent,
+        text: `Your IntellMeet ${actionLabel} OTP code is: ${otpCode}. Valid for 5 minutes.`,
+      });
+      console.log(`[EmailService] OTP email successfully sent to ${toEmail}`);
+      return { delivered: true };
+    } catch (err: any) {
+      console.error(`[EmailService] SMTP delivery failed to ${toEmail}:`, err?.message || err);
+      return { delivered: false, error: err?.message || 'Email delivery failed' };
     }
   }
 }

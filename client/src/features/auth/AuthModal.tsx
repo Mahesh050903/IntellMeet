@@ -46,7 +46,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [otpCode, setOtpCode] = useState('');
   const [otpTimer, setOtpTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotStep, setForgotStep] = useState<'request' | 'reset'>('request');
@@ -215,11 +214,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       setOtpCode('');
       setOtpTimer(60);
       setCanResend(false);
-      if (res.data?.devOtp) {
-        setDevOtpHint(res.data.devOtp);
-      } else {
-        setDevOtpHint(null);
-      }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
     } finally {
@@ -285,9 +279,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
       setOtpTimer(60);
       setCanResend(false);
-      if (res.data?.devOtp) {
-        setDevOtpHint(res.data.devOtp);
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to resend code');
     } finally {
@@ -303,7 +294,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
     setError(null);
     setLoading(true);
-    setDevOtpHint(null);
 
     try {
       const res = await apiFetch('/auth/forgot-password-request', {
@@ -320,9 +310,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       setForgotStep('reset');
       setOtpTimer(60);
       setCanResend(false);
-      if (res.data?.devOtp) {
-        setDevOtpHint(res.data.devOtp);
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to send reset code');
     } finally {
@@ -367,7 +354,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       setForgotSuccess('Your password has been successfully reset! You can now log in.');
       setEmail(forgotEmail.trim());
       setPassword('');
-      setDevOtpHint(null);
     } catch (err: any) {
       setError(err.message || 'Failed to reset password');
     } finally {
@@ -397,9 +383,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
       setOtpTimer(60);
       setCanResend(false);
-      if (res.data?.devOtp) {
-        setDevOtpHint(res.data.devOtp);
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to resend code');
     } finally {
@@ -567,45 +550,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           </div>
         )}
 
-        {((isOtpStep || (isForgotPassword && forgotStep === 'reset')) && devOtpHint) && (
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            borderRadius: '8px',
-            padding: '10px 14px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            color: '#34d399',
-            fontSize: '0.82rem',
-          }}>
-            <span>Local/Dev Mode OTP: <b>{devOtpHint}</b></span>
-            <button
-              type="button"
-              onClick={() => {
-                if (isForgotPassword) {
-                  setForgotOtp(devOtpHint);
-                } else {
-                  setOtpCode(devOtpHint);
-                }
-              }}
-              style={{
-                background: 'rgba(16, 185, 129, 0.2)',
-                border: 'none',
-                color: '#10b981',
-                padding: '3px 8px',
-                borderRadius: '4px',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
-              Auto-fill
-            </button>
-          </div>
-        )}
-
         {forgotSuccess ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '16px', padding: '12px 0' }}>
             <div style={{
@@ -635,7 +579,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 setForgotStep('request');
                 setForgotSuccess(null);
                 setError(null);
-                setDevOtpHint(null);
               }}
               className="btn-primary"
               style={{ width: '100%', padding: '11px', borderRadius: '8px', fontWeight: 600, marginTop: '8px' }}
@@ -688,7 +631,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 onClick={() => {
                   setIsForgotPassword(false);
                   setError(null);
-                  setDevOtpHint(null);
                 }}
                 style={{
                   background: 'none',
@@ -835,7 +777,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 onClick={() => {
                   setForgotStep('request');
                   setError(null);
-                  setDevOtpHint(null);
                 }}
                 style={{
                   background: 'none',
@@ -856,9 +797,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           )
         ) : isOtpStep ? (
           <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{
+              background: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: '#c7d2fe',
+              fontSize: '0.82rem',
+              lineHeight: 1.4,
+            }}>
+              <Mail size={18} color="#818cf8" style={{ flexShrink: 0 }} />
+              <span>
+                Verification code sent to <b>{email}</b>. Please check your inbox (or spam folder) to get your 6-digit OTP.
+              </span>
+            </div>
+
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '8px', fontWeight: 500, textAlign: 'center' }}>
-                6-Digit Verification Code
+                Enter 6-Digit OTP From Your Email
               </label>
               <input
                 type="text"
@@ -1257,7 +1216,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                         setForgotStep('request');
                         setForgotEmail(email);
                         setError(null);
-                        setDevOtpHint(null);
                         setForgotSuccess(null);
                       }}
                       style={{
@@ -1326,3 +1284,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     </div>
   );
 };
+

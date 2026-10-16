@@ -376,14 +376,19 @@ export const requestLoginOtp = async (req: Request, res: Response, next: NextFun
     const otp = OtpService.createOtp(email, 'login');
     const emailResult = await EmailService.sendOtpEmail(email, otp, 'login');
 
+    if (!emailResult.delivered) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send verification code to your email address. Please ensure the email is valid and try again.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      message: 'Verification code sent to your email address',
+      message: 'Verification code sent to your email address. Please check your inbox.',
       data: {
         email,
         purpose: 'login',
-        delivered: emailResult.delivered,
-        devOtp: emailResult.devOtp,
       },
     });
   } catch (error) {
@@ -416,14 +421,19 @@ export const requestRegisterOtp = async (req: Request, res: Response, next: Next
 
     const emailResult = await EmailService.sendOtpEmail(email, otp, 'register');
 
+    if (!emailResult.delivered) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send verification code to your email address. Please ensure the email is valid and try again.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      message: 'Verification code sent to your email address',
+      message: 'Verification code sent to your email address. Please check your inbox.',
       data: {
         email,
         purpose: 'register',
-        delivered: emailResult.delivered,
-        devOtp: emailResult.devOtp,
       },
     });
   } catch (error) {
@@ -532,14 +542,19 @@ export const resendOtp = async (req: Request, res: Response, next: NextFunction)
     const otp = OtpService.createOtp(email, purpose, pending.registrationData);
     const emailResult = await EmailService.sendOtpEmail(email, otp, purpose);
 
+    if (!emailResult.delivered) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to resend verification code to your email address. Please try again later.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      message: 'A new verification code has been sent',
+      message: 'A new verification code has been sent to your email address.',
       data: {
         email,
         purpose,
-        delivered: emailResult.delivered,
-        devOtp: emailResult.devOtp,
       },
     });
   } catch (error) {
@@ -598,14 +613,19 @@ export const requestForgotPasswordOtp = async (req: Request, res: Response, next
     const otp = OtpService.createOtp(email, 'forgot-password');
     const emailResult = await EmailService.sendOtpEmail(email, otp, 'forgot-password');
 
+    if (!emailResult.delivered) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send password reset code to your email address. Please ensure the email is correct.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Password reset verification code has been sent to your email.',
       data: {
         email,
         purpose: 'forgot-password',
-        delivered: emailResult.delivered,
-        devOtp: emailResult.devOtp,
       },
     });
   } catch (error) {
