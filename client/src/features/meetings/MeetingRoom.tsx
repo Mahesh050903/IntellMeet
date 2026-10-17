@@ -4,7 +4,7 @@ import { apiFetch } from '../../api/client.js';
 import {
   Mic, MicOff, Video as VideoIcon, VideoOff, ScreenShare, PhoneOff,
   MessageSquare, Sparkles, Send, Users, CheckCircle, ArrowRight, Copy, Check,
-  AlertCircle, X, RefreshCw
+  AlertCircle, X, RefreshCw, AlertTriangle
 } from 'lucide-react';
 
 interface MeetingRoomProps {
@@ -20,7 +20,8 @@ const RemoteParticipantVideo: React.FC<{
   stream?: MediaStream;
   isHost?: boolean;
   onHostControl?: (targetSocketId: string, action: string) => void;
-}> = ({ peer, stream, isHost, onHostControl }) => {
+  onRequestConfirmRemove?: (targetSocketId: string, targetName: string) => void;
+}> = ({ peer, stream, isHost, onHostControl, onRequestConfirmRemove }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -207,7 +208,9 @@ const RemoteParticipantVideo: React.FC<{
 
           <button
             onClick={() => {
-              if (window.confirm(`Remove ${peer.name} from the meeting?`)) {
+              if (onRequestConfirmRemove) {
+                onRequestConfirmRemove(peer.socketId, peer.name);
+              } else {
                 onHostControl?.(peer.socketId, 'remove-user');
               }
             }}
@@ -628,15 +631,50 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     }
   }, [toastMessage]);
 
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    isDanger?: boolean;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  } | null>(null);
+
+  const [alertModal, setAlertModal] = useState<{
+    title: string;
+    message: string;
+    type?: 'info' | 'warning' | 'danger';
+    onClose?: () => void;
+  } | null>(null);
+
+  const confirmRemoveUser = (targetSocketId: string, targetName: string) => {
+    setConfirmModal({
+      title: `Remove ${targetName}?`,
+      message: `Are you sure you want to remove ${targetName} from this meeting room? They will be disconnected immediately.`,
+      confirmText: 'Remove Participant',
+      cancelText: 'Cancel',
+      isDanger: true,
+      onConfirm: () => handleHostControl(targetSocketId, 'remove-user'),
+    });
+  };
+
   const handleHostControl = (targetSocketId: string, action: string) => {
     socketRef.current?.emit('host-control', { targetSocketId, action });
   };
 
   const handleEndMeetingForAll = () => {
-    if (window.confirm('Are you sure you want to end this live meeting for everyone? All participants will be disconnected.')) {
-      socketRef.current?.emit('end-meeting', { meetingId });
-      onLeaveMeeting();
-    }
+    setConfirmModal({
+      title: 'End Live Meeting?',
+      message: 'Are you sure you want to end this live meeting for everyone? All participants will be disconnected immediately.',
+      confirmText: 'End Meeting For All',
+      cancelText: 'Cancel',
+      isDanger: true,
+      onConfirm: () => {
+        socketRef.current?.emit('end-meeting', { meetingId });
+        onLeaveMeeting();
+      },
+    });
   };
 
   const handleMuteAll = () => {
@@ -767,8 +805,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
       }
-      alert(`The live meeting was ended for all participants by ${endedByName || 'the host'}.`);
-      onLeaveMeeting();
+      setAlertModal({
+        title: 'Meeting Ended',
+        message: `The live meeting was ended for all participants by ${endedByName || 'the host'}.`,
+        type: 'warning',
+        onClose: () => onLeaveMeeting(),
+      });
     });
 
     socket.on('force-mute', ({ byName }) => {
@@ -811,8 +853,12 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
       }
-      alert(`You were removed from this meeting by ${byName || 'the host'}.`);
-      onLeaveMeeting();
+      setAlertModal({
+        title: 'Removed from Meeting',
+        message: `You were removed from this meeting by ${byName || 'the host'}.`,
+        type: 'danger',
+        onClose: () => onLeaveMeeting(),
+      });
     });
 
     socket.on('receive-message', (msg) => {
@@ -1460,6 +1506,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               stream={remoteStreams[peer.socketId]}
               isHost={isHost}
               onHostControl={handleHostControl}
+              onRequestConfirmRemove={confirmRemoveUser}
             />
           ))}
         </div>
@@ -1849,11 +1896,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                         )}
 
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Remove ${p.name} from the meeting?`)) {
-                              handleHostControl(p.socketId, 'remove-user');
-                            }
-                          }}
+                          onClick={() => confirmRemoveUser(p.socketId, p.name)}
                           title="Remove from meeting"
                           style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '3px' }}
                         >
@@ -2024,6 +2067,241 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
           <span>Leave Room</span>
         </button>
       </div>
+
+      {/* Custom Centered Confirmation Modal */}
+      {confirmModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => {
+            confirmModal.onCancel?.();
+            setConfirmModal(null);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '430px',
+              backgroundColor: '#15171e',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '16px',
+              boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+              padding: '24px',
+              animation: 'modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+              color: '#f4f4f5',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  backgroundColor: confirmModal.isDanger ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                  border: confirmModal.isDanger ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {confirmModal.isDanger ? (
+                  <AlertTriangle size={22} color="#f87171" />
+                ) : (
+                  <AlertCircle size={22} color="#10b981" />
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0, marginBottom: '6px' }}>
+                  {confirmModal.title}
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#a1a1aa', margin: 0, lineHeight: 1.55 }}>
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '22px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  confirmModal.onCancel?.();
+                  setConfirmModal(null);
+                }}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  color: '#e4e4e7',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)')}
+              >
+                {confirmModal.cancelText || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const cb = confirmModal.onConfirm;
+                  setConfirmModal(null);
+                  cb();
+                }}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: confirmModal.isDanger ? '#ef4444' : '#10b981',
+                  color: '#ffffff',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: confirmModal.isDanger
+                    ? '0 4px 12px rgba(239, 68, 68, 0.35)'
+                    : '0 4px 12px rgba(16, 185, 129, 0.35)',
+                  transition: 'background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = confirmModal.isDanger ? '#dc2626' : '#059669')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = confirmModal.isDanger ? '#ef4444' : '#10b981')
+                }
+              >
+                {confirmModal.confirmText || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Centered Alert Modal */}
+      {alertModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => {
+            const cb = alertModal.onClose;
+            setAlertModal(null);
+            cb?.();
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '430px',
+              backgroundColor: '#15171e',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '16px',
+              boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+              padding: '24px',
+              animation: 'modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+              color: '#f4f4f5',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  backgroundColor:
+                    alertModal.type === 'danger'
+                      ? 'rgba(239, 68, 68, 0.15)'
+                      : alertModal.type === 'warning'
+                      ? 'rgba(245, 158, 11, 0.15)'
+                      : 'rgba(56, 189, 248, 0.15)',
+                  border:
+                    alertModal.type === 'danger'
+                      ? '1px solid rgba(239, 68, 68, 0.3)'
+                      : alertModal.type === 'warning'
+                      ? '1px solid rgba(245, 158, 11, 0.3)'
+                      : '1px solid rgba(56, 189, 248, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {alertModal.type === 'danger' ? (
+                  <AlertTriangle size={22} color="#f87171" />
+                ) : alertModal.type === 'warning' ? (
+                  <AlertTriangle size={22} color="#fbbf24" />
+                ) : (
+                  <AlertCircle size={22} color="#38bdf8" />
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', margin: 0, marginBottom: '6px' }}>
+                  {alertModal.title}
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#a1a1aa', margin: 0, lineHeight: 1.55 }}>
+                  {alertModal.message}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '22px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const cb = alertModal.onClose;
+                  setAlertModal(null);
+                  cb?.();
+                }}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor:
+                    alertModal.type === 'danger'
+                      ? '#ef4444'
+                      : alertModal.type === 'warning'
+                      ? '#f59e0b'
+                      : '#10b981',
+                  color: '#ffffff',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s ease',
+                }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
