@@ -79,17 +79,10 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
   };
 
   return (
-    <div className="container-responsive" style={{ maxWidth: '1160px', margin: '0 auto' }}>
-      <div className="responsive-flex-wrap" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: '20px',
-        marginBottom: '28px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+    <div className="container py-3 py-md-4" style={{ maxWidth: '1160px' }}>
+      <div className="row align-items-center justify-content-between pb-3 mb-4 border-bottom border-secondary border-opacity-25 g-3">
+        <div className="col-12 col-md-auto">
+          <div className="d-flex align-items-center gap-2 mb-1">
             <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f4f4f5' }}>
               Collaboration Hub
             </span>
@@ -101,7 +94,7 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
               background: 'rgba(16, 185, 129, 0.1)',
               color: '#34d399',
               border: '1px solid rgba(16, 185, 129, 0.25)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '4px'
             }}>
@@ -109,155 +102,158 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
               WebRTC Active
             </span>
           </div>
-          <p style={{ color: '#71717a', fontSize: '0.85rem' }}>
+          <p className="mb-0 text-secondary" style={{ fontSize: '0.85rem' }}>
             Welcome back, <span style={{ color: '#d4d4d8', fontWeight: 500 }}>{currentUser?.name || 'User'}</span>. Launch instant rooms or browse team sessions.
           </p>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn-secondary"
-          style={{ fontSize: '0.84rem' }}
-        >
-          <Plus size={15} color="#10b981" />
-          <span>New Scheduled Room</span>
-        </button>
+        <div className="col-12 col-md-auto d-flex justify-content-start justify-content-md-end">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-secondary w-100 w-md-auto"
+            style={{ fontSize: '0.84rem' }}
+          >
+            <Plus size={15} color="#10b981" />
+            <span>New Scheduled Room</span>
+          </button>
+        </div>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-        gap: '18px',
-        marginBottom: '36px',
-      }}>
-        <div style={{
-          background: '#12141a',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
-          borderRadius: '10px',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.35)',
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#10b981',
-              }}>
-                <Video size={18} strokeWidth={2.5} />
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-md-6">
+          <div style={{
+            background: '#12141a',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            borderRadius: '10px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: '100%',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.35)',
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#10b981',
+                }}>
+                  <Video size={18} strokeWidth={2.5} />
+                </div>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontFamily: 'monospace',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#a1a1aa',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                }}>
+                  Instant Peer-Mesh
+                </span>
               </div>
-              <span style={{
-                fontSize: '0.7rem',
-                fontFamily: 'monospace',
-                background: 'rgba(255, 255, 255, 0.05)',
-                color: '#a1a1aa',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-              }}>
-                Instant Peer-Mesh
-              </span>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#ffffff', marginBottom: '6px' }}>
+                Start Instant Meeting
+              </h3>
+              <p style={{ color: '#82828e', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                One-click video room with real-time audio, screen sharing, live chat, and AI transcription.
+              </p>
             </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#ffffff', marginBottom: '6px' }}>
-              Start Instant Meeting
-            </h3>
-            <p style={{ color: '#82828e', fontSize: '0.85rem', lineHeight: 1.5 }}>
-              One-click video room with real-time audio, screen sharing, live chat, and AI transcription.
-            </p>
-          </div>
 
-          <div style={{ marginTop: '22px' }}>
-            <button
-              onClick={handleInstantMeeting}
-              className="btn-primary"
-              style={{ width: '100%', padding: '11px 16px' }}
-            >
-              <Play size={15} fill="currentColor" />
-              <span>Launch Room Now</span>
-            </button>
+            <div style={{ marginTop: '22px' }}>
+              <button
+                onClick={handleInstantMeeting}
+                className="btn-primary w-100"
+                style={{ padding: '11px 16px' }}
+              >
+                <Play size={15} fill="currentColor" />
+                <span>Launch Room Now</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div style={{
-          background: '#12141a',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '10px',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#e4e4e7',
-              }}>
-                <Key size={18} strokeWidth={2.2} />
+        <div className="col-12 col-md-6">
+          <div style={{
+            background: '#12141a',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '10px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: '100%',
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#e4e4e7',
+                }}>
+                  <Key size={18} strokeWidth={2.2} />
+                </div>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontFamily: 'monospace',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#a1a1aa',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                }}>
+                  Direct Link
+                </span>
               </div>
-              <span style={{
-                fontSize: '0.7rem',
-                fontFamily: 'monospace',
-                background: 'rgba(255, 255, 255, 0.05)',
-                color: '#a1a1aa',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-              }}>
-                Direct Link
-              </span>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#ffffff', marginBottom: '6px' }}>
+                Join with Room ID
+              </h3>
+              <p style={{ color: '#82828e', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                Enter an existing meeting ID or host invitation code to connect directly.
+              </p>
             </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#ffffff', marginBottom: '6px' }}>
-              Join with Room ID
-            </h3>
-            <p style={{ color: '#82828e', fontSize: '0.85rem', lineHeight: 1.5 }}>
-              Enter an existing meeting ID or host invitation code to connect directly.
-            </p>
-          </div>
 
-          <form onSubmit={handleJoinByCode} style={{ display: 'flex', gap: '8px', marginTop: '22px' }}>
-            <input
-              type="text"
-              placeholder="e.g. meet_b63892..."
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              style={{
-                flex: 1,
-                fontSize: '0.85rem',
-                padding: '9px 12px',
-                fontFamily: 'monospace',
-              }}
-            />
-            <button
-              type="submit"
-              className="btn-secondary"
-              style={{ padding: '9px 16px' }}
-            >
-              <span>Join</span>
-              <ArrowRight size={15} />
-            </button>
-          </form>
+            <form onSubmit={handleJoinByCode} className="d-flex flex-column flex-sm-row gap-2" style={{ marginTop: '22px' }}>
+              <input
+                type="text"
+                placeholder="e.g. meet_b63892..."
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                style={{
+                  flex: 1,
+                  fontSize: '0.85rem',
+                  padding: '9px 12px',
+                  fontFamily: 'monospace',
+                }}
+              />
+              <button
+                type="submit"
+                className="btn-secondary"
+                style={{ padding: '9px 16px' }}
+              >
+                <span>Join</span>
+                <ArrowRight size={15} />
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+        <div className="d-flex align-items-center justify-content-between mb-3">
           <div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f4f4f5' }}>Active Live Sessions</h3>
             <p style={{ color: '#71717a', fontSize: '0.82rem' }}>Currently running live meeting channels</p>
@@ -316,13 +312,14 @@ export const MeetingLobby: React.FC<MeetingLobbyProps> = ({ onJoinMeeting, curre
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
+          <div className="row g-3">
             {meetings.map((m) => {
               const meetingId = m._id || m.id;
               const isActive = m.status === 'active';
               return (
                 <div
                   key={meetingId}
+                  className="col-12 col-md-6 col-lg-4"
                   style={{
                     background: '#12141a',
                     border: '1px solid rgba(255, 255, 255, 0.07)',

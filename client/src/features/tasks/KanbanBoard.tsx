@@ -92,42 +92,40 @@ export const KanbanBoard: React.FC = () => {
   };
 
   return (
-    <div className="container-responsive" style={{ maxWidth: '1300px', margin: '0 auto' }}>
-      <div className="responsive-flex-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-        <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700 }}>Collaboration Kanban Board</h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.88rem' }}>
+    <div className="container py-3 py-md-4" style={{ maxWidth: '1300px' }}>
+      <div className="row align-items-center justify-content-between g-3 mb-4">
+        <div className="col-12 col-md-auto">
+          <h2 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.6rem)', fontWeight: 700, marginBottom: '4px' }}>Collaboration Kanban Board</h2>
+          <p className="mb-0 text-secondary" style={{ fontSize: '0.88rem' }}>
             Track project deliverables and action items generated from AI meetings
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="gradient-btn"
-          style={{
-            padding: '10px 18px',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.88rem',
-          }}
-        >
-          <Plus size={16} /> New Task
-        </button>
+        <div className="col-12 col-md-auto">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="gradient-btn w-100 w-md-auto"
+            style={{
+              padding: '10px 18px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontSize: '0.88rem',
+            }}
+          >
+            <Plus size={16} /> New Task
+          </button>
+        </div>
       </div>
 
-      <div className="kanban-grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-        gap: '20px',
-        alignItems: 'start',
-      }}>
+      <div className="row g-3 g-md-4 align-items-start">
         {columns.map((col) => {
           const colTasks = tasks.filter((t) => (t.status || 'todo') === col.id);
           return (
-            <div
-              key={col.id}
-              className="glass-panel"
+            <div key={col.id} className="col-12 col-md-4">
+              <div
+                className="glass-panel"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
@@ -305,8 +303,9 @@ export const KanbanBoard: React.FC = () => {
                 )}
               </div>
             </div>
-          );
-        })}
+          </div>
+        );
+      })}
       </div>
 
       {showAddModal && (
