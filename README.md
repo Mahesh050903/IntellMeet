@@ -1,10 +1,14 @@
 # IntellMeet 🚀
 ### AI-Powered Enterprise Meeting & Collaboration Platform
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-intellmeet.dpdns.org-00e599?style=for-the-badge&logo=google-chrome&logoColor=black)](https://intellmeet.dpdns.org/)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-Passing-emerald)](.github/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/Tests-17%20Passed-brightgreen)](server/tests/api.test.ts)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](tsconfig.json)
+
+> 🌐 **Live URL**: [https://intellmeet.dpdns.org/](https://intellmeet.dpdns.org/)
 
 IntellMeet is a modern, production-grade enterprise video conferencing and collaboration platform designed with the **MERN** stack (MongoDB, Express, React, Node.js with TypeScript), **Socket.io** & **WebRTC** mesh signaling for real-time video/audio/chat, and an **AI Meeting Intelligence Engine** that processes meeting audio transcripts into structured summaries, key decisions, and actionable Kanban tasks.
 
